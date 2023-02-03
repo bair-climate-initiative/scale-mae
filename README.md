@@ -68,7 +68,3 @@ main_linprobe.py \
 ```
 
 flag `--finetune` is enabled for fine-tuning and not enabled for linear probing
-
-## Linear Probing ##
-
-We will update codes for running linear probing soon.
