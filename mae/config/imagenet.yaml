@@ -1,0 +1,12 @@
+data:
+  type: ImageNet
+  size: 224
+  img_dir: 'ilsvrc'
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  vis_factor: 1.0
+
+sampler:
+  shuffle: true
+  seed: 0
+  

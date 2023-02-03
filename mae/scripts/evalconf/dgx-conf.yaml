@@ -1,0 +1,15 @@
+# Specify the root directory that contains your checkpoints
+root: /exps
+
+# will pull checkpoint from ${root}/${exp_ids}/checkpoint-latest.pth
+exp_ids:
+  - eval1
+
+evals:
+  - id: resisc
+    path: resisc45
+    scales:
+      - 56
+      - 112
+      - 224
+

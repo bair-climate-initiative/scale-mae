@@ -1,0 +1,10 @@
+data:
+  type: SENTINEL2
+  size: 1024
+  length: 100000
+  img_dir: 'sentinel-2-diverse-plus-expanded-la'
+  oversample: 1.5
+  mean: [ 665.65558013,  983.1557218 , 1241.98676153]
+  std: [ 852.4296, 1258.8298, 1590.1336]
+  vis_factor: 6000
+  base_resolution: 1.0
