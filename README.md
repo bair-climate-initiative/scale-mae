@@ -1,12 +1,35 @@
 # Scale-MAE 🛰️
 
-## Requirements and Setup ##
-Set up your Python (`conda` suggested) environment in the same way as the [MAE](github.com/facebookresearch/mae) repository. Please note that the `timm==0.3.2` patch is still needed for Scale-MAE.
+![image](https://user-images.githubusercontent.com/1455579/217665789-b46d6830-445f-4151-b7a4-a2152a81a8d1.png)
 
-In addition, install `GDAL`, `rasterio`, and `Shapely`.
+
+This repository provides a reimplementation of the code for [Scale-MAE: A Scale-Aware Masked Autoencoder for Multiscale Geospatial Representation Learning](https://arxiv.org/abs/2212.14532) (the original code was optimized for our distributed cluster).
+
+```
+@article{reed2022scale,
+  title={Scale-MAE: A Scale-Aware Masked Autoencoder for Multiscale Geospatial Representation Learning},
+  author={Reed, Colorado J and Gupta, Ritwik and Li, Shufan and Brockman, Sarah and Funk, Christopher and Clipp, Brian and Candido, Salvatore and Uyttendaele, Matt and Darrell, Trevor},
+  journal={arXiv preprint arXiv:2212.14532},
+  year={2022}
+}
+```
+
+* This repo is a modification on the [MAE repo](https://github.com/facebookresearch/mae). Installation and preparation follow that repo ;-).
+
+* As mentioned in the MAE repo, this repo is based on [`timm==0.3.2`](https://github.com/rwightman/pytorch-image-models), for which a [fix](https://github.com/rwightman/pytorch-image-models/issues/420#issuecomment-776459842) is needed to work with PyTorch 1.8.1+. In addition, install gdal, rasterio, and Shapely.  This tends to work pretty well (but gdal is notoriously tricky):
+
+```bash
+conda install geopandas. # this should setup gdal correctly...
+pip install rasterio shapely
+```
+
 
 ## Pretraining ##
 Datasets are defined by config files in `config` 
+
+
+
+# TOD FIX ALL OF THIS
 
 ```
 python -m torch.distributed.launch --nproc_per_node=4 --master_port=11083 main_pretrain.py\
@@ -69,5 +92,7 @@ main_linprobe.py \
 
 flag `--finetune` is enabled for fine-tuning and not enabled for linear probing
 
+
+---
 
 > Note: THIS SOFTWARE AND/OR DATA WAS DEPOSITED IN THE BAIR OPEN RESEARCH COMMONS REPOSITORY ON 2/8/23.
