@@ -23,6 +23,11 @@ conda install geopandas. # this should setup gdal correctly...
 pip install rasterio shapely
 ```
 
+## Pretrained Models
+
+* [**ViT Large 800 ep**](https://github.com/bair-climate-initiative/scale-mae/releases/download/base-800/scalemae-vitlarge-800.pth)
+* [**ViT Base 800 ep**](https://github.com/bair-climate-initiative/scale-mae/releases/download/base-800/scalemae-vitbase-800.pth)
+
 
 ## Pretraining ##
 Datasets are defined by config files in `config` 
