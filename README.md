@@ -18,10 +18,41 @@ This repository provides a reimplementation of the code for [Scale-MAE: A Scale-
 
 * As mentioned in the MAE repo, this repo is based on [`timm==0.3.2`](https://github.com/rwightman/pytorch-image-models), for which a [fix](https://github.com/rwightman/pytorch-image-models/issues/420#issuecomment-776459842) is needed to work with PyTorch 1.8.1+. In addition, install gdal, rasterio, and Shapely.  This tends to work pretty well (but gdal is notoriously tricky):
 
+## Installation
 ```bash
-conda install geopandas. # this should setup gdal correctly...
-pip install rasterio shapely
+conda create -n scalemae python=3.9 geopandas # geopandas should install gdal correctly
+conda activate scalemae
+# replace with your desired pytorch target (e.g. cuda version)
+conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
+pip install -e .
 ```
+
+Now shim timm (this is annoying and from the original MAE repo -- we'll try to fix at some point)
+
+Open something like the following file (it'll return as the file that throws an error when you run `echo $(conda info --envs | grep scalemae | awk '{print $NF}')/lib/python3.9/site-packages/timm/models/layers/helpers.py`, and replace the following code:
+
+```python
+ from torch._six import container_abcs
+```
+
+With the following:
+```python
+import torch
+TORCH_MAJOR = int(torch.__version__.split('.')[0])
+TORCH_MINOR = int(torch.__version__.split('.')[1])
+
+if TORCH_MAJOR == 1 and TORCH_MINOR < 8:
+    from torch._six import container_abcs
+else:
+    import collections.abc as container_abcs
+```
+
+## Data Preparation
+Download the FMoW-rgb dataset as described in the [here](https://github.com/fMoW/dataset).
+
+## Pretraining ##
+Datasets are defined by config files in `config` 
+
 
 ## Pretrained Models
 
@@ -29,8 +60,6 @@ pip install rasterio shapely
 * [**ViT Base 800 ep**](https://github.com/bair-climate-initiative/scale-mae/releases/download/base-800/scalemae-vitbase-800.pth)
 
 
-## Pretraining ##
-Datasets are defined by config files in `config` 
 
 
 

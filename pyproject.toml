@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61.0,<64"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+target-version = ["py38", "py39", "py310"]
+color = true
+skip_magic_trailing_comma = true
+
+[tool.isort]
+profile = "black"
+known_first_party = ["docs", "test", "src"]
+skip_gitignore = true
+color_output = true
