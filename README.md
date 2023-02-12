@@ -83,8 +83,8 @@ python -m torch.distributed.launch --nproc_per_node=4 \
 main_pretrain.py \
 --resume <path-to-model-checkpoint.pth> \
 --eval_only \
---eval_dataset <eval_dataset_name>
---eval_train_fnames <train_split_file>
+--eval_dataset <eval_dataset_name>  \
+--eval_train_fnames <train_split_file>  \
 --eval_val_fnames <val_split_file>
 ```
 
