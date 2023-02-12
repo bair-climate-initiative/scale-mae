@@ -63,7 +63,7 @@ def get_args_parser():
     )
     parser.add_argument(
         "--batch_size",
-        default=64,
+        default=32,
         type=int,
         help="Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus",
     )
@@ -104,7 +104,7 @@ def get_args_parser():
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
     )
 
-    parser.add_argument("--epochs", default=400, type=int)
+    parser.add_argument("--epochs", default=800, type=int)
     parser.add_argument(
         "--accum_iter",
         default=1,
@@ -130,7 +130,7 @@ def get_args_parser():
 
     parser.add_argument("--input_size", default=224, type=int, help="images input size")
     parser.add_argument(
-        "--target_size", nargs="*", type=int, help="images input size", default=[224]
+        "--target_size", nargs="*", type=int, help="images input size", default=[448]
     )
     parser.add_argument(
         "--source_size", nargs="*", type=int, help="images source size", default=[224]
@@ -143,7 +143,7 @@ def get_args_parser():
         help="Masking ratio (percentage of removed patches).",
     )
 
-    parser.add_argument("--scale_min", default=0.5, type=float, help="Min RRC scale")
+    parser.add_argument("--scale_min", default=0.2, type=float, help="Min RRC scale")
 
     parser.add_argument("--scale_max", default=1.0, type=float, help="Max RRC scale")
 
@@ -152,13 +152,19 @@ def get_args_parser():
         action="store_true",
         help="Use (per-patch) normalized pixels as targets for computing loss",
     )
+    parser.add_argument(
+        "--reconst_loss",
+        action="store_false",
+        dest='norm_pix_loss',
+        help="Contrary to norm_pix_loss",
+    )
 
     parser.add_argument(
         "--restart",
         action="store_true",
         help="Load the checkpoint, but start from epoch 0",
     )
-    parser.set_defaults(norm_pix_loss=False)
+    parser.set_defaults(norm_pix_loss=True)
 
     # Optimizer parameters
     parser.add_argument(
@@ -175,7 +181,7 @@ def get_args_parser():
     parser.add_argument(
         "--blr",
         type=float,
-        default=1e-3,
+        default=0.00015,
         metavar="LR",
         help="base learning rate: absolute_lr = base_lr * total_batch_size / 256",
     )
@@ -188,7 +194,7 @@ def get_args_parser():
     )
 
     parser.add_argument(
-        "--warmup_epochs", type=int, default=40, metavar="N", help="epochs to warmup LR"
+        "--warmup_epochs", type=int, default=20, metavar="N", help="epochs to warmup LR"
     )
 
     parser.add_argument(
@@ -218,7 +224,7 @@ def get_args_parser():
     parser.add_argument(
         "--eval_scale",
         nargs="*",
-        default=[224],
+        default=[56,112,224],
         type=int,
         help="The scales at which to run evaluation for kNN",
     )
@@ -268,27 +274,27 @@ def get_args_parser():
     )
     parser.add_argument(
         "--decoder_aux_loss_layers",
-        default=0,
+        default=1,
         type=int,
         help="number of decoder layers used in loss, 0 to use all layers",
     )
 
     parser.add_argument(
         "--fixed_output_size_min",
-        default=0,
+        default=224,
         type=int,
         help="if not 0, fix output dimension",
     )
     parser.add_argument(
         "--fixed_output_size_max",
-        default=0,
+        default=336,
         type=int,
         help="if not 0, fix output dimension",
     )
 
     parser.add_argument(
         "--decoder_depth",
-        default=8,
+        default=3,
         type=int,
         help="number of decoder layers used in loss, 0 to use all layers",
     )
@@ -298,14 +304,22 @@ def get_args_parser():
         help="If true, encoder receive tokens after standard demasking, if not, encoded patches are directly passed to decoder",
     )
     parser.add_argument(
+        "--no_mask_token",
+        action="store_false",
+        dest='use_mask_token',
+        help="Contrary to use_mask_token",
+    )
+    parser.set_defaults(use_mask_token=True)
+    parser.add_argument(
         "--project_pos_emb",
         action="store_true",
         help="If true, adding a linear projection layer before the pos_emb is passed to decoder",
     )
     parser.add_argument(
-        "--loss_masking",
-        action="store_true",
-        help="If true, masking the loss for pixels not masked",
+        "--no_loss_masking",
+        action="store_false",
+        dest='loss_masking',
+        help="If true, do not mask the loss for pixels that are not masked on input",
     )
     # self_attention
     parser.add_argument(
@@ -338,14 +352,15 @@ def get_args_parser():
         help="Which target size to have at a certain step",
     )
     parser.add_argument(
-        "--fcn_dim", default=256, type=int, help="FCN Hidden Dimension "
+        "--fcn_dim", default=512, type=int, help="FCN Hidden Dimension "
     )
     parser.add_argument(
-        "--fcn_layers", default=3, type=int, help="FCN Hidden Dimension "
+        "--fcn_layers", default=2, type=int, help="FCN Hidden Dimension "
     )
     parser.add_argument(
-        "--independent_fcn_head",
-        action="store_true",
+        "--share_fcn_head",
+        action="store_false",
+        dest='independent_fcn_head',
         help="Whether to use different decoder for two bands",
     )
     parser.add_argument(
@@ -357,7 +372,7 @@ def get_args_parser():
         "--band_config",
         nargs="*",
         type=int,
-        default=[14, 224],
+        default=[7, 56],
         help="list like [dim1, dim2]; Target High Freq = img - upsample(downsample(img,dim1)),Target Low Freq = upsample(downsample(img,dim2))",
     )
     parser.add_argument(
