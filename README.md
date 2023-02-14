@@ -56,6 +56,13 @@ ln -s ~/data/fmow-rgb data
 
 ## Pretraining ##
 Datasets are defined by config files in `config`.
+```
+# change to num of gpus you have
+python -m torch.distributed.launch --nproc_per_node=4
+main_pretrain.py
+```
+
+use `-h` to see details of all arguments. 
 
 
 ## Pretrained Models
@@ -64,16 +71,6 @@ Datasets are defined by config files in `config`.
 * [**ViT Base 800 ep**](https://github.com/bair-climate-initiative/scale-mae/releases/download/base-800/scalemae-vitbase-800.pth)
 
 
-
-
-
-```
-# change to num of gpus you have
-python -m torch.distributed.launch --nproc_per_node=4
-main_pretrain.py
-```
-
-use `-h` to see details of all arguments. 
 
 ## Evaluation
 
