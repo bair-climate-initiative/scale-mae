@@ -7,7 +7,8 @@ import wandb
 import yaml
 
 api = wandb.Api()
-
+import sys
+sys.path.append('/home/jacklishufan/scale-mae/mae')
 import util.misc as misc
 from main_pretrain import get_args_parser as pretrain_get_args_parser
 from main_pretrain import main as main_pretrain
@@ -43,6 +44,13 @@ def get_args_parser():
         help="USE GSD Relative Embedding with base=224x224",
     )
     parser.add_argument(
+        "--no-eval_gsd",
+        action="store_false",
+        help="USE GSD Relative Embedding with base=224x224",
+        dest='eval_gsd'
+    )
+    parser.set_defaults(eval_gsd=True)
+    parser.add_argument(
         "--eval_base_resolution",
         default=1.0,
         type=float,
@@ -61,9 +69,18 @@ def main(args):
     else:
         # TODO collect all run ids or specify other conditions
         pass
-
+    misc.init_distributed_mode(args)
+    is_main = False
+    if args.rank == 0:
+        wandb_args = dict(
+            project="scale-mae-knn-reproduce",
+            entity="bair-climate-initiative",
+            resume="allow",
+            )
+        run = wandb.init(**wandb_args)
+        run_id = run.id
+        is_main= True
     default_args = pretrain_get_args_parser().parse_args([])
-
     for expid in exp_ids:
         try:
             # load the latest checkpoint
@@ -101,16 +118,18 @@ def main(args):
 
                 arg_vals = {**vars(default_args), **vars(margs)}
                 use_args = Namespace(**arg_vals)
+                use_args.base_resolution = 2.0
                 res = main_pretrain(use_args)
 
-                if misc.is_main_process():
+                if is_main:
                     wandb_run = api.run(
-                        f"bair-climate-initiative/multiscale_mae/{margs.wandb_id}"
+                        f"bair-climate-initiative/scale-mae-knn-reproduce/{run_id}"
                     )
                     for scale, acc in res.items():
-                        wandb_run.summary[f"{eval_id}-knn-acc-{scale}"] = acc * 100.0
+                        wandb_run.summary[f"{eval_id}-knn-acc-{scale}"]= acc * 100.0
                     wandb_run.summary.update()
                     print("Sent results", res)
+                    print("HERE")
         except Exception as err:
             print(f"Unable to process (will skip) {expid}: {err}")
 

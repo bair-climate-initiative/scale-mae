@@ -376,7 +376,7 @@ def load_model(args, model_without_ddp, optimizer, loss_scaler, strict=True):
             )
         else:
             checkpoint = torch.load(args.resume, map_location="cpu")
-        model_without_ddp.load_state_dict(checkpoint["model"], strict=strict)
+        model_without_ddp.load_state_dict(checkpoint["model"], strict=False)
         print("Resume checkpoint %s" % args.resume)
         if (
             "optimizer" in checkpoint

@@ -178,6 +178,8 @@ def get_eval_dataset_and_transform(
         use_transforms = [transforms.ToTensor(), transform_normalize]
         if transforms_init:
             use_transforms.insert(0, transforms_init)
+        if eval_dataset_id == 'ucmerced':
+            use_transforms.insert(0, transforms.Resize((256,256)))
         transform_eval = transforms.Compose(use_transforms)
 
         if os.path.isdir(eval_dataset_path):
