@@ -8,7 +8,7 @@ from torchvision.datasets import ImageFolder
 from .airound import AIROUND_DATASET_STATS
 from .cvbrct import CVBRCT_DATASET_STATS
 from .eurosat import EUROSAT_DATASET_STATS
-from .fmow import FMOW_DATASET_STATS, build_fmow,ImageFolderWithGSD
+from .fmow import FMOW_DATASET_STATS, build_fmow, ImageFolderWithGSD
 from .imagelist import ImageList
 from .imagenet100 import build_imagenet_sampler
 from .mlrsnet import MLRSNET_DATASET_STATS
@@ -21,6 +21,7 @@ from .whurs import WHURS_DATASET_STATS
 from .xview import build_xview2_sampler
 import numpy as np
 import torch
+
 dataset_stats_lookup = {
     "airound": AIROUND_DATASET_STATS,
     "cvbrct": CVBRCT_DATASET_STATS,
@@ -62,6 +63,7 @@ def get_dataset_and_sampler(
             config=config, num_replicas=num_replicas, rank=rank, transforms=transforms
         )
     elif dataset_type in ["fmow"]:
+        # TODO this should be folded into build_fmow if the experiment works
         dataset = ImageFolderWithGSD(
             root=config["data"]["img_dir"],
             transform=transforms_init,
@@ -75,7 +77,11 @@ def get_dataset_and_sampler(
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFn(transforms, args.base_resolution,load_gsd=config["data"]['load_gsd']),
+                TransformCollateFn(
+                    transforms,
+                    args.base_resolution,
+                    load_gsd=config["data"]["load_gsd"],
+                ),
             )
         else:
             return (
@@ -129,16 +135,16 @@ def is_fmow_rgb(fname: str) -> bool:
 
 
 class TransformCollateFn:
-    def __init__(self, transforms, base_resolution=1.0,load_gsd=False):
+    def __init__(self, transforms, base_resolution=1.0, load_gsd=False):
         self.transforms = transforms
         self.base_resolution = base_resolution
         self.load_gsd = load_gsd
 
     def __call__(self, samples):
-        imgs,targets = list(zip(*samples))
+        imgs, targets = list(zip(*samples))
         imgs = torch.stack(imgs)
         if self.load_gsd:
-            target_gsd = [x.get('gsd',1.0) for x in targets]
+            target_gsd = [x.get("gsd", 1.0) for x in targets]
             target_gsd = torch.tensor(target_gsd).float()
         else:
             target_gsd = 1.0
@@ -187,8 +193,8 @@ def get_eval_dataset_and_transform(
         use_transforms = [transforms.ToTensor(), transform_normalize]
         if transforms_init:
             use_transforms.insert(0, transforms_init)
-        if eval_dataset_id == 'ucmerced':
-            use_transforms.insert(0, transforms.Resize((256,256)))
+        if eval_dataset_id == "ucmerced":
+            use_transforms.insert(0, transforms.Resize((256, 256)))
         transform_eval = transforms.Compose(use_transforms)
 
         if os.path.isdir(eval_dataset_path):
