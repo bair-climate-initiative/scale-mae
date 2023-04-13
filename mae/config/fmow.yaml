@@ -2,9 +2,10 @@ data:
   type: fmow
   # size: 224
   oversample: 1.0
-  img_dir: 'fdata/train'
+  img_dir: '/home/cjrd/data/fmow/train'
   mean: [0.485, 0.456, 0.406] 
   std: [0.229, 0.224, 0.225]  
+  load_gsd: on
   # actual mean/std, but imagenet numbers work a bit better
   # mean: [0.3916, 0.3936, 0.3658]
   # std: [0.2775, 0.2713, 0.2751]

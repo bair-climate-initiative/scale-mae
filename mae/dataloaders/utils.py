@@ -8,7 +8,7 @@ from torchvision.datasets import ImageFolder
 from .airound import AIROUND_DATASET_STATS
 from .cvbrct import CVBRCT_DATASET_STATS
 from .eurosat import EUROSAT_DATASET_STATS
-from .fmow import FMOW_DATASET_STATS, build_fmow
+from .fmow import FMOW_DATASET_STATS, build_fmow,ImageFolderWithGSD
 from .imagelist import ImageList
 from .imagenet100 import build_imagenet_sampler
 from .mlrsnet import MLRSNET_DATASET_STATS
@@ -19,7 +19,8 @@ from .sentinel2 import build_sentinel_sampler
 from .ucmerced import UCMERCED_DATASET_STATS
 from .whurs import WHURS_DATASET_STATS
 from .xview import build_xview2_sampler
-
+import numpy as np
+import torch
 dataset_stats_lookup = {
     "airound": AIROUND_DATASET_STATS,
     "cvbrct": CVBRCT_DATASET_STATS,
@@ -61,7 +62,7 @@ def get_dataset_and_sampler(
             config=config, num_replicas=num_replicas, rank=rank, transforms=transforms
         )
     elif dataset_type in ["fmow"]:
-        dataset = datasets.ImageFolder(
+        dataset = ImageFolderWithGSD(
             root=config["data"]["img_dir"],
             transform=transforms_init,
             is_valid_file=is_fmow_rgb,
@@ -74,7 +75,7 @@ def get_dataset_and_sampler(
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFn(transforms, args.base_resolution),
+                TransformCollateFn(transforms, args.base_resolution,load_gsd=config["data"]['load_gsd']),
             )
         else:
             return (
@@ -128,14 +129,22 @@ def is_fmow_rgb(fname: str) -> bool:
 
 
 class TransformCollateFn:
-    def __init__(self, transforms, base_resolution=1.0):
+    def __init__(self, transforms, base_resolution=1.0,load_gsd=False):
         self.transforms = transforms
         self.base_resolution = base_resolution
+        self.load_gsd = load_gsd
 
     def __call__(self, samples):
-        imgs = torch.stack(list(zip(*samples))[0])
+        imgs,targets = list(zip(*samples))
+        imgs = torch.stack(imgs)
+        if self.load_gsd:
+            target_gsd = [x.get('gsd',1.0) for x in targets]
+            target_gsd = torch.tensor(target_gsd).float()
+        else:
+            target_gsd = 1.0
         imgs, imgs_src, ratios, _, _ = self.transforms(imgs)
         res = ratios * self.base_resolution
+        res = res * target_gsd
         imgs_src_res = res * (imgs.shape[-1] / imgs_src.shape[-1])
         return (imgs_src, imgs_src_res, imgs, res), None
 
