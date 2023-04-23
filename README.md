@@ -68,7 +68,6 @@ use `-h` to see details of all arguments.
 ## Pretrained Models
 
 * [**ViT Large 800 ep**](https://github.com/bair-climate-initiative/scale-mae/releases/download/base-800/scalemae-vitlarge-800.pth)
-* [**ViT Base 800 ep**](https://github.com/bair-climate-initiative/scale-mae/releases/download/base-800/scalemae-vitbase-800.pth)
 
 
 
