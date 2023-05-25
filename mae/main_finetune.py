@@ -22,7 +22,6 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 
-assert timm.__version__ == "0.3.2"  # version check
 import models_vit
 import util.lr_decay as lrd
 import util.misc as misc

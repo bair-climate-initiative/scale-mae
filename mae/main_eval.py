@@ -25,7 +25,6 @@ import torchvision.transforms as tv_transforms
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-assert timm.__version__ == "0.3.2"  # version check
 import os
 import tempfile
 

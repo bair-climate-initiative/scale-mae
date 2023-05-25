@@ -25,7 +25,6 @@ import torchvision.transforms as tv_transforms
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-assert timm.__version__ == "0.3.2"  # version check
 import os
 import re
 
@@ -155,7 +154,7 @@ def get_args_parser():
     parser.add_argument(
         "--reconst_loss",
         action="store_false",
-        dest='norm_pix_loss',
+        dest="norm_pix_loss",
         help="Contrary to norm_pix_loss",
     )
 
@@ -224,7 +223,7 @@ def get_args_parser():
     parser.add_argument(
         "--eval_scale",
         nargs="*",
-        default=[56,112,224],
+        default=[56, 112, 224],
         type=int,
         help="The scales at which to run evaluation for kNN",
     )
@@ -306,7 +305,7 @@ def get_args_parser():
     parser.add_argument(
         "--no_mask_token",
         action="store_false",
-        dest='use_mask_token',
+        dest="use_mask_token",
         help="Contrary to use_mask_token",
     )
     parser.set_defaults(use_mask_token=True)
@@ -318,7 +317,7 @@ def get_args_parser():
     parser.add_argument(
         "--no_loss_masking",
         action="store_false",
-        dest='loss_masking',
+        dest="loss_masking",
         help="If true, do not mask the loss for pixels that are not masked on input",
     )
     # self_attention
@@ -360,7 +359,7 @@ def get_args_parser():
     parser.add_argument(
         "--share_fcn_head",
         action="store_false",
-        dest='independent_fcn_head',
+        dest="independent_fcn_head",
         help="Whether to use different decoder for two bands",
     )
     parser.add_argument(
@@ -603,7 +602,9 @@ def main(args):
         model_without_ddp = model.module
 
     # following timm: set wd as 0 for bias and norm layers
-    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
+    param_groups = optim_factory.param_groups_layer_decay(
+        model_without_ddp, args.weight_decay
+    )
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
     loss_scaler = NativeScaler()
     if not args.resume and not args.no_autoresume:

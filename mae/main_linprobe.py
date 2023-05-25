@@ -33,7 +33,6 @@ from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
 from wandb_log import WANDB_LOG_IMG_CONFIG
 
-assert timm.__version__ == "0.3.2"  # version check
 import models_vit
 import util.lr_decay as lrd
 import util.misc as misc
@@ -518,7 +517,7 @@ def main(args):
 
     if not args.finetune:
         # Linear probe
-        param_groups = optim_factory.add_weight_decay(
+        param_groups = optim_factory.param_groups_layer_decay(
             model_without_ddp, args.weight_decay
         )
     else:
