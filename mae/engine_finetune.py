@@ -114,14 +114,16 @@ def evaluate(
     data_loader,
     model,
     device,
-    eval_gsd_ratio=1.0,
+    eval_pos_embed_base_frequency=1.0,
     gsd_embed=False,
     eval_input_size=512,
     reference_size=512,
 ):
-    gsd_ratio = eval_gsd_ratio
+    pos_embed_base_frequency = eval_pos_embed_base_frequency
     if gsd_embed:
-        gsd_ratio = gsd_ratio * (reference_size / eval_input_size)
+        pos_embed_base_frequency = pos_embed_base_frequency * (
+            reference_size / eval_input_size
+        )
 
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -141,7 +143,8 @@ def evaluate(
         with torch.cuda.amp.autocast():
             output = model(
                 images,
-                input_res=torch.ones(len(images)).float().to(images.device) * gsd_ratio,
+                input_res=torch.ones(len(images)).float().to(images.device)
+                * pos_embed_base_frequency,
             )
             loss = criterion(output, target)
 

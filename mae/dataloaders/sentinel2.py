@@ -8,10 +8,12 @@ from .geo import CustomRasterDataset
 
 
 class Sentinel2StackSampleCollateFn:
-    def __init__(self, transforms, over_sample_factor=1.0, base_resolution=1.0):
+    def __init__(
+        self, transforms, over_sample_factor=1.0, pos_embed_base_frequency=1.0
+    ):
         self.transforms = transforms
         self.over_sample_factor = over_sample_factor
-        self.base_resolution = base_resolution
+        self.pos_embed_base_frequency = pos_embed_base_frequency
 
     def __call__(self, samples):
         imgs = stack_samples(samples)["image"][:, :3, :, :]
@@ -28,7 +30,7 @@ class Sentinel2StackSampleCollateFn:
             imgs, imgs_src, ratios, zero_ratio, valid_masks = self.transforms(
                 imgs, valid_masks
             )  # ratio is crop_dim / original_dim, so resolution should be 1/ ratios
-            res = ratios * self.base_resolution
+            res = ratios * self.pos_embed_base_frequency
             imgs_src_res = res * (imgs.shape[-1] / imgs_src.shape[-1])
         return get_inputs_outputs(imgs_src, imgs_src_res, imgs, res), dict(
             zero_ratio=zero_ratio, valid_masks=valid_masks
@@ -58,6 +60,6 @@ def build_sentinel_sampler(config, args, num_replicas, rank, transforms):
         rank=rank,
     )
     collate_fn = Sentinel2StackSampleCollateFn(
-        transforms, over_sample_factor, args.base_resolution
+        transforms, over_sample_factor, args.pos_embed_base_frequency
     )
     return dataset, sampler, collate_fn

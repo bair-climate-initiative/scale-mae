@@ -45,7 +45,7 @@ from PIL import Image
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data import Subset
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from util.resolution_sched import get_output_size_scheduler, get_target_size_scheduler
+from util.resolution_sched import get_target_size_scheduler
 from wandb_log import WANDB_LOG_IMG_CONFIG
 
 Image.MAX_IMAGE_PIXELS = 1000000000
@@ -168,6 +168,61 @@ def get_args_parser():
     )
     parser.set_defaults(norm_pix_loss=True)
 
+    parser.add_argument(
+        "--decoder_depth",
+        default=3,
+        type=int,
+        help="number of decoder layers used in loss, 0 to use all layers",
+    )
+    parser.add_argument(
+        "--use_mask_token",
+        action="store_true",
+        help="If true, encoder receive tokens after standard demasking, if not, encoded patches are directly passed to decoder",
+    )
+    parser.add_argument(
+        "--no_mask_token",
+        action="store_false",
+        dest="use_mask_token",
+        help="Contrary to use_mask_token",
+    )
+    parser.set_defaults(use_mask_token=True)
+    parser.add_argument(
+        "--project_pos_emb",
+        action="store_true",
+        help="If true, adding a linear projection layer before the pos_emb is passed to decoder",
+    )
+    parser.add_argument(
+        "--no_loss_masking",
+        action="store_false",
+        dest="loss_masking",
+        help="If true, do not mask the loss for pixels that are not masked on input",
+    )
+
+    # self_attention
+    parser.add_argument(
+        "--self_attention", action="store_true", help="fake self attention"
+    )
+    # absolute_scale
+    parser.add_argument(
+        "--absolute_scale",
+        action="store_true",
+        help="Positional embedding is the same for each image (based on resolution)",
+    )
+
+    parser.add_argument(
+        "--pos_embed_base_frequency",
+        default=2.5,
+        type=float,
+        help="The reference frequency of the sin wave for positional embeddings",
+    )
+
+    parser.add_argument(
+        "--target_size_scheduler",
+        default="constant",
+        type=str,
+        help="Which target size to have at a certain step",
+    )
+
     ### kNN Arguments
     parser.add_argument(
         "--knn", default=20, type=int, help="Number of neighbors to use for KNN"
@@ -203,7 +258,7 @@ def get_args_parser():
     parser.set_defaults(eval_enable_gsdpe=True)
 
     parser.add_argument(
-        "--eval_gsd_ratio",
+        "--eval_pos_embed_base_frequency",
         default=1.0,
         type=float,
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
@@ -301,89 +356,28 @@ def get_args_parser():
         "--dist_url", default="env://", help="url used to set up distributed training"
     )
 
-    parser.add_argument(
-        "--fixed_output_size_min",
-        default=224,
-        type=int,
-        help="if not 0, fix output dimension",
-    )
-    parser.add_argument(
-        "--fixed_output_size_max",
-        default=336,
-        type=int,
-        help="if not 0, fix output dimension",
-    )
-
-    parser.add_argument(
-        "--decoder_depth",
-        default=3,
-        type=int,
-        help="number of decoder layers used in loss, 0 to use all layers",
-    )
-    parser.add_argument(
-        "--use_mask_token",
-        action="store_true",
-        help="If true, encoder receive tokens after standard demasking, if not, encoded patches are directly passed to decoder",
-    )
-    parser.add_argument(
-        "--no_mask_token",
-        action="store_false",
-        dest="use_mask_token",
-        help="Contrary to use_mask_token",
-    )
-    parser.set_defaults(use_mask_token=True)
-    parser.add_argument(
-        "--project_pos_emb",
-        action="store_true",
-        help="If true, adding a linear projection layer before the pos_emb is passed to decoder",
-    )
-    parser.add_argument(
-        "--no_loss_masking",
-        action="store_false",
-        dest="loss_masking",
-        help="If true, do not mask the loss for pixels that are not masked on input",
-    )
-    # self_attention
-    parser.add_argument(
-        "--self_attention", action="store_true", help="fake self attention"
-    )
-    # absolute_scale
-    parser.add_argument(
-        "--absolute_scale",
-        action="store_true",
-        help="Positional embedding is the same for each image (based on resolution)",
-    )
-
-    parser.add_argument(
-        "--base_resolution",
-        default=2.5,
-        type=float,
-        help="The base resolution to use for the period of the sin wave for positional embeddings",
-    )
-
-    parser.add_argument(
-        "--target_size_scheduler",
-        default="constant",
-        type=str,
-        help="Which target size to have at a certain step",
-    )
+    ### Laplacian decoder arguments
     parser.add_argument(
         "--fcn_dim", default=512, type=int, help="FCN Hidden Dimension "
     )
+
     parser.add_argument(
         "--fcn_layers", default=2, type=int, help="FCN Hidden Dimension "
     )
-    parser.add_argument(
-        "--share_fcn_head",
-        action="store_false",
-        dest="independent_fcn_head",
-        help="Whether to use different decoder for two bands",
-    )
+
     parser.add_argument(
         "--use_l1_loss",
         action="store_true",
         help="Whether to use different L1 loss for high frequency (encoder-gtp-fpn specific)",
     )
+
+    parser.add_argument(
+        "--l1_loss_weight",
+        default=1.0,
+        type=float,
+        help="w,Weight of l1 loss, final loss is w * L_1_loss (high) + L_2_loss (low)",
+    )
+
     parser.add_argument(
         "--band_config",
         nargs="*",
@@ -391,12 +385,7 @@ def get_args_parser():
         default=[7, 56],
         help="list like [dim1, dim2]; Target High Freq = img - upsample(downsample(img,dim1)),Target Low Freq = upsample(downsample(img,dim2))",
     )
-    parser.add_argument(
-        "--l1_loss_weight",
-        default=1.0,
-        type=float,
-        help="w,Weight of l1 loss, final loss is w * L_1_loss (high) + L_2_loss (low)",
-    )
+
     parser.add_argument(
         "--progressive", action="store_true", help="Progressive upsample"
     )
@@ -506,7 +495,6 @@ def main(args):
             collate_fn=train_collate,
         )
 
-        output_size_scheduler = get_output_size_scheduler(args)
         target_size_scheduler = get_target_size_scheduler(args)
 
     ########################### EVAL SPECIFIC SETUP ###########################
@@ -585,10 +573,8 @@ def main(args):
         self_attention=args.self_attention,
         absolute_scale=args.absolute_scale,
         target_size=args.target_size,
-        fixed_output_size=0,  # will be set dynamically online
         fcn_dim=args.fcn_dim,
         fcn_layers=args.fcn_layers,
-        independent_fcn_head=args.independent_fcn_head,
         use_l1_loss=args.use_l1_loss,
         band_config=args.band_config,
         l1_loss_weight=args.l1_loss_weight,
@@ -676,8 +662,8 @@ def main(args):
                     # TODO clean this
                     feat_dim=1024 if "large" in args.model else 768,
                     eval_input_size=eval_input_size,
-                    eval_gsd_ratio=args.eval_gsd_ratio
-                    if hasattr(args, "eval_gsd_ratio")
+                    eval_pos_embed_base_frequency=args.eval_pos_embed_base_frequency
+                    if hasattr(args, "eval_pos_embed_base_frequency")
                     else 1.0,
                     gsd_embed=args.eval_enable_gsdpe
                     if hasattr(args, "eval_enable_gsdpe")
@@ -711,7 +697,6 @@ def main(args):
             log_writer=log_writer,
             args=args,
             scheduler=target_size_scheduler,
-            fix_resolution_scheduler=output_size_scheduler,
         )
         if args.output_dir and (
             epoch % args.checkpoint_interval == 0 or epoch + 1 == args.epochs

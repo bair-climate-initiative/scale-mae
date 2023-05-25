@@ -199,7 +199,7 @@ def get_args_parser():
     )
     parser.set_defaults(eval_enable_gsdpe=True)
     parser.add_argument(
-        "--eval_gsd_ratio",
+        "--eval_pos_embed_base_frequency",
         default=1.0,
         type=float,
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
@@ -253,7 +253,7 @@ def get_args_parser():
     )
 
     parser.add_argument(
-        "--base_resolution",
+        "--pos_embed_base_frequency",
         default=2.5,
         type=float,
         help="The base resolution to use for the period of the sin wave for positional embeddings",
@@ -549,7 +549,7 @@ def main(args):
             data_loader_val,
             model,
             device,
-            eval_gsd_ratio=args.eval_gsd_ratio,
+            eval_pos_embed_base_frequency=args.eval_pos_embed_base_frequency,
             gsd_embed=args.eval_enable_gsdpe,
             eval_input_size=args.eval_input_size,
             reference_size=args.eval_reference_resolution,
@@ -617,7 +617,7 @@ def main(args):
             data_loader_val,
             model,
             device,
-            eval_gsd_ratio=args.eval_gsd_ratio,
+            eval_pos_embed_base_frequency=args.eval_pos_embed_base_frequency,
             gsd_embed=args.eval_enable_gsdpe,
             eval_input_size=args.eval_input_size,
             reference_size=args.eval_reference_resolution,

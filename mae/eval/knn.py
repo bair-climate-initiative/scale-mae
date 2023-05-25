@@ -44,15 +44,15 @@ def kNN(
     sigma=0.07,
     feat_dim=768,
     eval_input_size=256,
-    eval_gsd_ratio=1.0,
+    eval_pos_embed_base_frequency=1.0,
     gsd_embed=False,
 ):
     is_dist = misc.is_dist_avail_and_initialized()
     net.eval()
     print(f"Starting KNN evaluation with K={cmd_args.knn}")
-    gsd_ratio = eval_gsd_ratio
+    pos_embed_base_frequency = eval_pos_embed_base_frequency
     if gsd_embed:
-        gsd_ratio = gsd_ratio * (224 / eval_input_size)
+        pos_embed_base_frequency = pos_embed_base_frequency * (224 / eval_input_size)
 
     st_time = time.time()
     trainFeatures = torch.zeros(
@@ -85,7 +85,8 @@ def kNN(
         )
         features = net(
             inputs,
-            input_res=torch.ones(len(inputs)).float().to(inputs.device) * gsd_ratio,
+            input_res=torch.ones(len(inputs)).float().to(inputs.device)
+            * pos_embed_base_frequency,
             knn_feats=True,
         )
         # breakpoint()
@@ -144,7 +145,8 @@ def kNN(
 
             features = net(
                 inputs,
-                input_res=torch.ones(len(inputs)).float().to(inputs.device) * gsd_ratio,
+                input_res=torch.ones(len(inputs)).float().to(inputs.device)
+                * pos_embed_base_frequency,
                 knn_feats=True,
             )
             features = torch.nn.functional.normalize(features, dim=1)

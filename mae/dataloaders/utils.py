@@ -74,13 +74,13 @@ def get_dataset_and_sampler(
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFn(transforms, args.base_resolution),
+                TransformCollateFn(transforms, args.pos_embed_base_frequency),
             )
         else:
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFnLabel(transforms, args.base_resolution),
+                TransformCollateFnLabel(transforms, args.pos_embed_base_frequency),
             )
     elif dataset_type == "resisc":
         dataset = build_resic(config["data"]["img_dir"], transforms=transforms_init)
@@ -91,13 +91,13 @@ def get_dataset_and_sampler(
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFn(transforms, args.base_resolution),
+                TransformCollateFn(transforms, args.pos_embed_base_frequency),
             )
         else:
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFnLabel(transforms, args.base_resolution),
+                TransformCollateFnLabel(transforms, args.pos_embed_base_frequency),
             )
     elif dataset_type == "eurosat":
         dataset = datasets.ImageFolder(
@@ -111,13 +111,13 @@ def get_dataset_and_sampler(
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFn(transforms, args.base_resolution),
+                TransformCollateFn(transforms, args.pos_embed_base_frequency),
             )
         else:
             return (
                 dataset,
                 sampler_train,
-                TransformCollateFnLabel(transforms, args.base_resolution),
+                TransformCollateFnLabel(transforms, args.pos_embed_base_frequency),
             )
     else:
         raise NotImplementedError
@@ -128,28 +128,28 @@ def is_fmow_rgb(fname: str) -> bool:
 
 
 class TransformCollateFn:
-    def __init__(self, transforms, base_resolution=1.0):
+    def __init__(self, transforms, pos_embed_base_frequency=1.0):
         self.transforms = transforms
-        self.base_resolution = base_resolution
+        self.pos_embed_base_frequency = pos_embed_base_frequency
 
     def __call__(self, samples):
         imgs = torch.stack(list(zip(*samples))[0])
         imgs, imgs_src, ratios, _, _ = self.transforms(imgs)
-        res = ratios * self.base_resolution
+        res = ratios * self.pos_embed_base_frequency
         imgs_src_res = res * (imgs.shape[-1] / imgs_src.shape[-1])
         return (imgs_src, imgs_src_res, imgs, res), None
 
 
 class TransformCollateFnLabel:
-    def __init__(self, transforms, base_resolution=1.0):
+    def __init__(self, transforms, pos_embed_base_frequency=1.0):
         self.transforms = transforms
-        self.base_resolution = base_resolution
+        self.pos_embed_base_frequency = pos_embed_base_frequency
 
     def __call__(self, samples):
         imgs = torch.stack(list(zip(*samples))[0])
         labels = torch.tensor([x[1] for x in samples])
         imgs, imgs_src, ratios, _, _ = self.transforms(imgs)
-        res = ratios * self.base_resolution
+        res = ratios * self.pos_embed_base_frequency
         imgs_src_res = res * (imgs.shape[-1] / imgs_src.shape[-1])
         return (imgs_src, imgs_src_res, imgs, res, labels), None
 

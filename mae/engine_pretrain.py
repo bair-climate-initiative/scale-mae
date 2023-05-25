@@ -57,9 +57,7 @@ def train_one_epoch(
 
         with torch.cuda.amp.autocast():
             target_size = scheduler.get_target_size(epoch)
-            fix_decoding_size = fix_resolution_scheduler.get_target_size(epoch)
             model.module.set_target_size(target_size)
-            model.module.set_fix_decoding_size(fix_decoding_size)
             loss, y, mask, mean, var, pos_emb, pos_emb_decoder, samples = model(
                 samples,
                 input_res=res,

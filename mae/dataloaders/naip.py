@@ -157,9 +157,9 @@ class NAIP(CustomRasterDataset):
 
 
 class NAIPStackSampleCollateFn:
-    def __init__(self, transforms, base_resolution=1.0):
+    def __init__(self, transforms, pos_embed_base_frequency=1.0):
         self.transforms = transforms
-        self.base_resolution = base_resolution
+        self.pos_embed_base_frequency = pos_embed_base_frequency
 
     def __call__(self, samples):
         targets = stack_samples(samples)["image"][:, :3, :, :]
@@ -169,7 +169,7 @@ class NAIPStackSampleCollateFn:
             targets, imgs_src, ratios, zero_ratio, valid_masks = self.transforms(
                 targets, valid_masks
             )
-            targets_res = ratios * self.base_resolution
+            targets_res = ratios * self.pos_embed_base_frequency
             imgs_src_res = targets_res * (targets.shape[-1] / imgs_src.shape[-1])
         return get_inputs_outputs(imgs_src, imgs_src_res, targets, targets_res), dict(
             zero_ratio=zero_ratio, valid_masks=valid_masks
@@ -189,5 +189,5 @@ def build_naip_sampler(config, args, num_replicas, rank, transforms):
         num_replicas=num_replicas,
         rank=rank,
     )
-    collate_fn = NAIPStackSampleCollateFn(transforms, args.base_resolution)
+    collate_fn = NAIPStackSampleCollateFn(transforms, args.pos_embed_base_frequency)
     return naip, sampler, collate_fn

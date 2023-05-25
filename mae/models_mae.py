@@ -59,10 +59,8 @@ class MaskedAutoencoderViT(nn.Module):
         self_attention=False,
         absolute_scale=False,
         target_size=[],
-        fixed_output_size=None,
         fcn_dim=256,
         fcn_layers=3,
-        independent_fcn_head=False,
         use_l1_loss=False,
         l1_loss_weight=1.0,
         band_config=[14, 224],
@@ -77,15 +75,12 @@ class MaskedAutoencoderViT(nn.Module):
         self.l1_loss_weight = l1_loss_weight
         self.band_config = band_config
         self.patch_size = patch_size
-        assert fixed_output_size % patch_size == 0
-        self.fixed_output_size = fixed_output_size // patch_size
         self.multiscale = len(target_size) > 1
         self.patch_embed = PatchEmbedUnSafe(img_size, patch_size, in_chans, embed_dim)
         num_patches = self.patch_embed.num_patches
         self.self_attention = self_attention
         self.absolute_scale = absolute_scale
         self.target_size = target_size
-        self.independent_fcn_head = independent_fcn_head
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(
             torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False
@@ -123,11 +118,7 @@ class MaskedAutoencoderViT(nn.Module):
                 decoder_embed_dim, decoder_embed_dim, bias=True
             )
         self.fpn = FPNHead(decoder_embed_dim, share_weights=progressive)
-        if independent_fcn_head:
-            self.fcn_high = FCNHead(decoder_embed_dim, fcn_dim, fcn_layers, 3)
-            self.fcn_low = FCNHead(decoder_embed_dim, fcn_dim, fcn_layers, 3)
-        else:
-            self.fcn = FCNHead(decoder_embed_dim, fcn_dim, fcn_layers, 3)
+        self.fcn = FCNHead(decoder_embed_dim, fcn_dim, fcn_layers, 3)
         # Depending on the mode of decoding we are using, the decoder architecture is different
         if self.multiscale:
             self.decoder_blocks = nn.ModuleList(
@@ -397,10 +388,7 @@ class MaskedAutoencoderViT(nn.Module):
         # standard decoder
         x = x.view(n, p, p, d).permute(0, 3, 1, 2).contiguous()  # B X C X H X W
         x = self.fpn(x)  # C2,C3,C4,C5
-        if self.independent_fcn_head:
-            x = [self.fcn_high([x[0]])[0], self.fcn_low([x[1]])[0]]
-        else:
-            x = self.fcn(x)
+        x = self.fcn(x)
 
         # # apply Transformer blocks
         # for blk in self.decoder_blocks:
@@ -468,74 +456,6 @@ class MaskedAutoencoderViT(nn.Module):
         x_arr = torch.arange(n).view(n, 1).repeat(1, l_mask)
         seq = seq[x_arr, mask]
         return seq
-
-    def set_fix_decoding_size(self, fixed_output_size):
-        if type(fixed_output_size) == list:
-            fixed_output_size = fixed_output_size[0]
-        assert fixed_output_size % self.patch_size == 0
-        self.fixed_output_size = fixed_output_size // self.patch_size
-
-    def build_input_sequence(self, x, base_res, base_dim, pos_emb_base):
-        p = self.patch_embed.patch_size[0]
-        _, l_x, _ = x.shape
-        _, length_pos_embed, _ = pos_emb_base.shape
-        mask_tokens = self.mask_token_decoder.repeat(x.shape[0], length_pos_embed, 1)
-        mask_tokens[:, :1] = x[:, :1]  # copy class token
-        mask_tokens += pos_emb_base
-        if self.fixed_output_size > 0:
-            mask_tokens, mask = self.random_crop(
-                mask_tokens, self.fixed_output_size, cls_token=True
-            )
-            _, length_pos_embed, _ = mask_tokens.shape
-        else:
-            mask = None
-        new_x = [x, mask_tokens]  # first decoding has cls token
-
-        # At the start, our array is [x, pos_embed]
-        # We want this to be [x, pos_embed1, pos_embed2, ...]
-        # We also want to return the sizes of each positional embedding (length_pos_embeds)
-        atten_mask = [
-            torch.ones(
-                (l_x + length_pos_embed, l_x + length_pos_embed), device=x.device
-            )
-        ]
-        length_pos_embeds = [length_pos_embed]
-        ids = [mask]
-        target_sizes = [x for x in self.target_size if x != max(self.target_size)]
-        for d in target_sizes:
-            d = d // p
-            pos_emb = get_2d_sincos_pos_embed_with_resolution(
-                x.shape[-1], d, base_res * d / base_dim, cls_token=True, device=x.device
-            )
-            _, length_pos_embed, _ = pos_emb.shape
-            mask_tokens = self.mask_token_decoder.repeat(
-                x.shape[0], length_pos_embed, 1
-            )
-            mask_tokens += pos_emb
-            mask_tokens = mask_tokens[:, 1:]
-            length_pos_embed = length_pos_embed - 1
-
-            if self.fixed_output_size > 0:
-                mask_tokens, mask = self.random_crop(
-                    mask_tokens, self.fixed_output_size
-                )
-                _, length_pos_embed, _ = mask_tokens.shape
-            else:
-                mask = None
-            new_x.append(mask_tokens)
-            length_pos_embeds.append(length_pos_embed)
-            ids.append(mask)
-            atten_mask.append(
-                torch.ones((length_pos_embed, length_pos_embed), device=x.device)
-            )
-
-        x = torch.cat(new_x, dim=1)
-        atten_mask = torch.block_diag(*atten_mask)  # L X L
-        atten_mask[:l_x] = 1
-        atten_mask[:, :l_x] = 1
-        atten_mask = 1 - atten_mask  # 0 no mask, 1 mask
-        atten_mask[atten_mask == 1] = float("-inf")
-        return x, length_pos_embeds, atten_mask, ids
 
     def forward_loss(self, imgs, pred, mask, target_dim, ids):
         """

@@ -3,24 +3,6 @@ import numpy as np
 import re
 
 
-def get_output_size_scheduler(args):
-    if args.fixed_output_size_min or args.fixed_output_size_max:
-        assert (
-            args.fixed_output_size_min > 0
-            and args.fixed_output_size_max > 0
-            and args.fixed_output_size_max >= args.fixed_output_size_min
-        )
-        output_size_scheduler = RandomResolutionScheduler(
-            target_size=np.arange(
-                args.fixed_output_size_min, args.fixed_output_size_max + 1, 16
-            )
-        )
-    else:
-        output_size_scheduler = ConstantResolutionScheduler(target_size=0)
-
-    return output_size_scheduler
-
-
 def get_target_size_scheduler(args):
     if args.target_size_scheduler == "random":
         target_size_scheduler = RandomResolutionScheduler(args.target_size)

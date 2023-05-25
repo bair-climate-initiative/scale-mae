@@ -51,7 +51,7 @@ def get_args_parser():
     parser.set_defaults(eval_enable_gsdpe=True)
 
     parser.add_argument(
-        "--eval_gsd_ratio",
+        "--eval_pos_embed_base_frequency",
         default=1.0,
         type=float,
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
@@ -98,7 +98,7 @@ def main(args):
                 setattr(margs, k, v)
             # set all of the distributed bits
             margs.eval_enable_gsdpe = args.eval_enable_gsdpe
-            margs.eval_gsd_ratio = args.eval_gsd_ratio
+            margs.eval_pos_embed_base_frequency = args.eval_pos_embed_base_frequency
             margs.knn = args.knn
             margs.local_rank = args.local_rank
             margs.dist_on_itp = args.dist_on_itp
@@ -120,7 +120,7 @@ def main(args):
 
                 arg_vals = {**vars(default_args), **vars(margs)}
                 use_args = Namespace(**arg_vals)
-                use_args.base_resolution = 2.0
+                use_args.pos_embed_base_frequency = 2.0
                 res = main_pretrain(use_args)
 
                 if is_main:

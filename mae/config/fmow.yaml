@@ -9,5 +9,5 @@ data:
   # mean: [0.3916, 0.3936, 0.3658]
   # std: [0.2775, 0.2713, 0.2751]
   vis_factor: 1.0
-  base_resolution: 2.5
+  pos_embed_base_frequency: 2.5
   
