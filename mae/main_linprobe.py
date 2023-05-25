@@ -107,10 +107,6 @@ def get_args_parser():
     )
 
     parser.add_argument(
-        "--source_size", nargs="*", type=int, help="images source size", default=[224]
-    )
-
-    parser.add_argument(
         "--mask_ratio",
         default=0.75,
         type=float,
@@ -193,12 +189,17 @@ def get_args_parser():
         "--eval_path", default="resisc45", type=str, help="dataset path"
     )
     parser.add_argument(
-        "--eval_gsd",
-        action="store_true",
-        help="USE GSD Relative Embedding with base=224x224",
+        "--eval_enable_gsdpe", action="store_true", help="Use GSDPE with base=224x224"
     )
     parser.add_argument(
-        "--eval_base_resolution",
+        "--eval_disable_gsdpe",
+        action="store_false",
+        help="USE GSD Relative Embedding with base=224x224",
+        dest="eval_enable_gsdpe",
+    )
+    parser.set_defaults(eval_enable_gsdpe=True)
+    parser.add_argument(
+        "--eval_gsd_ratio",
         default=1.0,
         type=float,
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
@@ -210,7 +211,7 @@ def get_args_parser():
         help="Reference input resolution to scale GSD factor by in eval.",
     )
     parser.add_argument(
-        "--eval_scale", default=224, type=int, help="The size of the eval input."
+        "--eval_input_size", default=224, type=int, help="The size of the eval input."
     )
     parser.add_argument("--eval", action="store_true", help="Perform evaluation only")
     parser.add_argument(
@@ -306,9 +307,6 @@ def main(args):
     ######## backwards compatability hacks
     if not isinstance(args.target_size, list):
         args.target_size = [args.target_size]
-
-    if not isinstance(args.source_size, list):
-        args.source_size = [args.source_size]
     ########################################
 
     # Validate that all sizes in target_size are multiples of 16
@@ -368,7 +366,9 @@ def main(args):
         src_transform=K.Resize((args.input_size, args.input_size)),
     )
 
-    transforms_val_init = tv_transforms.Resize((args.eval_scale, args.eval_scale))
+    transforms_val_init = tv_transforms.Resize(
+        (args.eval_input_size, args.eval_input_size)
+    )
 
     dataset_train, sampler_train, train_collate = get_dataset_and_sampler(
         args,
@@ -549,9 +549,9 @@ def main(args):
             data_loader_val,
             model,
             device,
-            eval_base_resolution=args.eval_base_resolution,
-            gsd_embed=args.eval_gsd,
-            eval_scale=args.eval_scale,
+            eval_gsd_ratio=args.eval_gsd_ratio,
+            gsd_embed=args.eval_enable_gsdpe,
+            eval_input_size=args.eval_input_size,
             reference_size=args.eval_reference_resolution,
         )
         print(
@@ -617,9 +617,9 @@ def main(args):
             data_loader_val,
             model,
             device,
-            eval_base_resolution=args.eval_base_resolution,
-            gsd_embed=args.eval_gsd,
-            eval_scale=args.eval_scale,
+            eval_gsd_ratio=args.eval_gsd_ratio,
+            gsd_embed=args.eval_enable_gsdpe,
+            eval_input_size=args.eval_input_size,
             reference_size=args.eval_reference_resolution,
         )
         print(

@@ -45,11 +45,7 @@ from PIL import Image
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data import Subset
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from util.resolution_sched import (
-    get_output_size_scheduler,
-    get_source_size_scheduler,
-    get_target_size_scheduler,
-)
+from util.resolution_sched import get_output_size_scheduler, get_target_size_scheduler
 from wandb_log import WANDB_LOG_IMG_CONFIG
 
 Image.MAX_IMAGE_PIXELS = 1000000000
@@ -57,15 +53,122 @@ Image.MAX_IMAGE_PIXELS = 1000000000
 
 def get_args_parser():
     parser = argparse.ArgumentParser("MAE pre-training", add_help=False)
+
+    ### Training-specific arguments
     parser.add_argument(
         "--checkpoint_interval", default=20, type=int, help="How often to checkpoint"
     )
+
+    parser.add_argument(
+        "--restart",
+        action="store_true",
+        help="Load the checkpoint, but start from epoch 0",
+    )
+
+    parser.add_argument(
+        "--start_epoch",
+        default=0,
+        type=int,
+        metavar="N",
+        help="Epoch upon which to restart",
+    )
+
+    parser.add_argument(
+        "--no_autoresume",
+        action="store_true",
+        help="Do not autoresume from last checkpoint",
+    )
+    parser.set_defaults(no_autoresume=False)
+    parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--resume", default="", help="resume from checkpoint")
+
+    parser.add_argument(
+        "--print_freq",
+        default=20,
+        type=int,
+        help="How often (iters) print results to wandb",
+    )
+
+    parser.add_argument(
+        "--device", default="cuda", help="device to use for training / testing"
+    )
+
     parser.add_argument(
         "--batch_size",
         default=32,
         type=int,
         help="Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus",
     )
+
+    parser.add_argument("--epochs", default=800, type=int)
+
+    parser.add_argument("--num_workers", default=10, type=int)
+    parser.add_argument(
+        "--pin_mem",
+        action="store_true",
+        help="Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.",
+    )
+    parser.add_argument("--no_pin_mem", action="store_false", dest="pin_mem")
+    parser.set_defaults(pin_mem=True)
+
+    parser.add_argument(
+        "--accum_iter",
+        default=1,
+        type=int,
+        help="Accumulate gradient iterations (for increasing the effective batch size under memory constraints)",
+    )
+
+    parser.add_argument("--config", default="config.yaml", type=str, help="Config file")
+
+    parser.add_argument(
+        "--model",
+        default="mae_vit_base_patch16",
+        type=str,
+        metavar="MODEL",
+        help="Name of model to train",
+    )
+
+    # When input images are all of different sizes, Kornia refuses to work.
+    # Therefore, we first crop all input images to input_size * 2. Then,
+    # we do a RandomResizeCrop to the target_size which is the highest resolution
+    # that the decoder will reconstruct at. Finally, the input image is resized to
+    # input_size which is passed to the encoder.
+    parser.add_argument(
+        "--input_size", default=224, type=int, help="Image input size to the encoder"
+    )
+    parser.add_argument(
+        "--target_size",
+        nargs="*",
+        type=int,
+        help="Image output size for reconstruction",
+        default=[448],
+    )
+
+    parser.add_argument(
+        "--mask_ratio",
+        default=0.75,
+        type=float,
+        help="Masking ratio (percentage of removed patches).",
+    )
+
+    parser.add_argument("--scale_min", default=0.2, type=float, help="Min RRC scale")
+    parser.add_argument("--scale_max", default=1.0, type=float, help="Max RRC scale")
+
+    parser.add_argument(
+        "--norm_pix_loss",
+        action="store_true",
+        help="Use (per-patch) normalized pixels as targets for computing loss",
+    )
+
+    parser.add_argument(
+        "--reconst_loss",
+        action="store_false",
+        dest="norm_pix_loss",
+        help="Contrary to norm_pix_loss",
+    )
+    parser.set_defaults(norm_pix_loss=True)
+
+    ### kNN Arguments
     parser.add_argument(
         "--knn", default=20, type=int, help="Number of neighbors to use for KNN"
     )
@@ -84,88 +187,80 @@ def get_args_parser():
     )
     parser.set_defaults(skip_knn_eval=False)
 
+    parser.add_argument("--eval_only", action="store_true", help="Only do KNN Eval")
+    parser.set_defaults(eval_only=False)
+
+    ### Evaluation arguments
     parser.add_argument(
-        "--print_freq",
-        default=20,
-        type=int,
-        help="How often (iters) print results to wandb",
+        "--eval_enable_gsdpe", action="store_true", help="Use GSDPE with base=224x224"
     )
+    parser.add_argument(
+        "--eval_disable_gsdpe",
+        action="store_false",
+        help="USE GSD Relative Embedding with base=224x224",
+        dest="eval_enable_gsdpe",
+    )
+    parser.set_defaults(eval_enable_gsdpe=True)
 
     parser.add_argument(
-        "--eval_gsd",
-        action="store_true",
-        help="USE GSD Relative Embedding with base=224x224",
-    )
-    parser.add_argument(
-        "--eval_base_resolution",
+        "--eval_gsd_ratio",
         default=1.0,
         type=float,
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
     )
 
-    parser.add_argument("--epochs", default=800, type=int)
     parser.add_argument(
-        "--accum_iter",
-        default=1,
-        type=int,
-        help="Accumulate gradient iterations (for increasing the effective batch size under memory constraints)",
+        "--eval_dataset",
+        default="resisc",
+        type=str,
+        help="Name of eval dataset to use. Options are resisc (default), airound, mlrsnet, and fmow.",
     )
-    parser.add_argument("--config", default="config.yaml", type=str, help="Config file")
+
+    parser.add_argument(
+        "--eval_path",
+        default="resisc45",
+        type=str,
+        help="Path to the root of the evaluation dataset",
+    )
+
+    parser.add_argument(
+        "--eval_train_fnames",
+        default="resisc45/train.txt",
+        type=str,
+        help="Path to a text file containing all the train filenames",
+    )
+    parser.add_argument(
+        "--eval_val_fnames",
+        default="data/resisc45/val.txt",
+        type=str,
+        help="Path to a text file containing all the validation filenames",
+    )
+
+    parser.add_argument(
+        "--eval_input_size",
+        nargs="*",
+        default=[56, 112, 224],
+        type=int,
+        help="The scales at which to run evaluation for kNN",
+    )
+
+    ### WandB/experiment tracking arguments
     parser.add_argument("--name", default="", type=str, help="Name of wandb entry")
 
-    # Model parameters
-    parser.add_argument(
-        "--model",
-        default="mae_vit_base_patch16",
-        type=str,
-        metavar="MODEL",
-        help="Name of model to train",
-    )
-
-    # Model parameters
     parser.add_argument(
         "--wandb_id", default=None, type=str, help="Wandb id, useful for resuming runs"
     )
 
-    parser.add_argument("--input_size", default=224, type=int, help="images input size")
     parser.add_argument(
-        "--target_size", nargs="*", type=int, help="images input size", default=[448]
+        "--output_dir",
+        default="./output_dir",
+        help="path where to save, empty for no saving",
     )
     parser.add_argument(
-        "--source_size", nargs="*", type=int, help="images source size", default=[224]
+        "--log_dir", default="./output_dir", help="path where to tensorboard log"
     )
 
-    parser.add_argument(
-        "--mask_ratio",
-        default=0.75,
-        type=float,
-        help="Masking ratio (percentage of removed patches).",
-    )
-
-    parser.add_argument("--scale_min", default=0.2, type=float, help="Min RRC scale")
-
-    parser.add_argument("--scale_max", default=1.0, type=float, help="Max RRC scale")
-
-    parser.add_argument(
-        "--norm_pix_loss",
-        action="store_true",
-        help="Use (per-patch) normalized pixels as targets for computing loss",
-    )
-    parser.add_argument(
-        "--reconst_loss",
-        action="store_false",
-        dest="norm_pix_loss",
-        help="Contrary to norm_pix_loss",
-    )
-
-    parser.add_argument(
-        "--restart",
-        action="store_true",
-        help="Load the checkpoint, but start from epoch 0",
-    )
-    parser.set_defaults(norm_pix_loss=True)
-
-    # Optimizer parameters
+    ### Optimizer parameters
     parser.add_argument(
         "--weight_decay", type=float, default=0.05, help="weight decay (default: 0.05)"
     )
@@ -196,73 +291,7 @@ def get_args_parser():
         "--warmup_epochs", type=int, default=20, metavar="N", help="epochs to warmup LR"
     )
 
-    parser.add_argument(
-        "--eval_path", default="resisc45", type=str, help="dataset path"
-    )
-
-    parser.add_argument(
-        "--eval_train_fnames",
-        default="resisc45/train.txt",
-        type=str,
-        help="dataset path",
-    )
-    parser.add_argument(
-        "--eval_val_fnames",
-        default="data/resisc45/val.txt",
-        type=str,
-        help="dataset path",
-    )
-
-    parser.add_argument(
-        "--eval_dataset",
-        default="resisc",
-        type=str,
-        help="name of eval dataset to use. Options are resisc (default), airound, mlrsnet, and fmow.",
-    )
-
-    parser.add_argument(
-        "--eval_scale",
-        nargs="*",
-        default=[56, 112, 224],
-        type=int,
-        help="The scales at which to run evaluation for kNN",
-    )
-
-    parser.add_argument(
-        "--output_dir",
-        default="./output_dir",
-        help="path where to save, empty for no saving",
-    )
-    parser.add_argument(
-        "--log_dir", default="./output_dir", help="path where to tensorboard log"
-    )
-    parser.add_argument(
-        "--device", default="cuda", help="device to use for training / testing"
-    )
-    parser.add_argument("--eval_only", action="store_true", help="Only do KNN Eval")
-    parser.set_defaults(eval_only=False)
-    parser.add_argument(
-        "--no_autoresume",
-        action="store_true",
-        help="Dont autoresume from last checkpoint",
-    )
-    parser.set_defaults(no_autoresume=False)
-    parser.add_argument("--seed", default=0, type=int)
-    parser.add_argument("--resume", default="", help="resume from checkpoint")
-
-    parser.add_argument(
-        "--start_epoch", default=0, type=int, metavar="N", help="start epoch"
-    )
-    parser.add_argument("--num_workers", default=10, type=int)
-    parser.add_argument(
-        "--pin_mem",
-        action="store_true",
-        help="Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.",
-    )
-    parser.add_argument("--no_pin_mem", action="store_false", dest="pin_mem")
-    parser.set_defaults(pin_mem=True)
-
-    # distributed training parameters
+    ### Distributed training parameters
     parser.add_argument(
         "--world_size", default=1, type=int, help="number of distributed processes"
     )
@@ -270,12 +299,6 @@ def get_args_parser():
     parser.add_argument("--dist_on_itp", action="store_true")
     parser.add_argument(
         "--dist_url", default="env://", help="url used to set up distributed training"
-    )
-    parser.add_argument(
-        "--decoder_aux_loss_layers",
-        default=1,
-        type=int,
-        help="number of decoder layers used in loss, 0 to use all layers",
     )
 
     parser.add_argument(
@@ -345,12 +368,6 @@ def get_args_parser():
         help="Which target size to have at a certain step",
     )
     parser.add_argument(
-        "--source_size_scheduler",
-        default="constant",
-        type=str,
-        help="Which target size to have at a certain step",
-    )
-    parser.add_argument(
         "--fcn_dim", default=512, type=int, help="FCN Hidden Dimension "
     )
     parser.add_argument(
@@ -404,9 +421,6 @@ def main(args):
     ######## backwards compatability hacks
     if not isinstance(args.target_size, list):
         args.target_size = [args.target_size]
-
-    if not isinstance(args.source_size, list):
-        args.source_size = [args.source_size]
     ########################################
 
     if not args.eval_only:
@@ -458,7 +472,6 @@ def main(args):
         transforms_train = CustomCompose(
             rescale_transform=K.RandomResizedCrop(
                 (target_size, target_size),
-                # (args.input_size, args.input_size),
                 ratio=(1.0, 1.0),
                 scale=(args.scale_min, args.scale_max),
                 resample=Resample.BICUBIC.name,
@@ -495,7 +508,6 @@ def main(args):
 
         output_size_scheduler = get_output_size_scheduler(args)
         target_size_scheduler = get_target_size_scheduler(args)
-        source_size_scheduler = get_source_size_scheduler(args)
 
     ########################### EVAL SPECIFIC SETUP ###########################
     # backwards compatability so running runs dont break
@@ -566,7 +578,6 @@ def main(args):
     model = models_mae.__dict__[args.model](
         img_size=args.input_size,
         norm_pix_loss=args.norm_pix_loss,
-        decoder_aux_loss_layers=args.decoder_aux_loss_layers,
         decoder_depth=args.decoder_depth,
         use_mask_token=args.use_mask_token,
         project_pos_emb=args.project_pos_emb,
@@ -656,26 +667,31 @@ def main(args):
             (epoch % args.knn_eval_freq == 0 or epoch == args.epochs) or args.eval_only
         ) and not args.skip_knn_eval:
             eval_res = {}
-            for eval_scale in args.eval_scale:
-                eval_res[eval_scale] = kNN(
+            for eval_input_size in args.eval_input_size:
+                eval_res[eval_input_size] = kNN(
                     cmd_args=args,
                     net=model,
                     trainloader=data_loader_eval_train,
                     testloader=data_loader_eval_test,
                     # TODO clean this
                     feat_dim=1024 if "large" in args.model else 768,
-                    eval_scale=eval_scale,
-                    eval_base_resolution=args.eval_base_resolution
-                    if hasattr(args, "eval_base_resolution")
+                    eval_input_size=eval_input_size,
+                    eval_gsd_ratio=args.eval_gsd_ratio
+                    if hasattr(args, "eval_gsd_ratio")
                     else 1.0,
-                    gsd_embed=args.eval_gsd if hasattr(args, "eval_gsd") else False,
+                    gsd_embed=args.eval_enable_gsdpe
+                    if hasattr(args, "eval_enable_gsdpe")
+                    else False,
                 )
                 if misc.is_main_process():
-                    print(f"eval results ({eval_scale}): {eval_res[eval_scale]}")
+                    print(
+                        f"eval results ({eval_input_size}): {eval_res[eval_input_size]}"
+                    )
                     if not args.eval_only:
                         wandb.log(
                             {
-                                f"knn-acc-{eval_scale}": eval_res[eval_scale] * 100.0,
+                                f"knn-acc-{eval_input_size}": eval_res[eval_input_size]
+                                * 100.0,
                                 "epoch": epoch,
                             }
                         )
@@ -695,7 +711,6 @@ def main(args):
             log_writer=log_writer,
             args=args,
             scheduler=target_size_scheduler,
-            source_size_scheduler=source_size_scheduler,
             fix_resolution_scheduler=output_size_scheduler,
         )
         if args.output_dir and (

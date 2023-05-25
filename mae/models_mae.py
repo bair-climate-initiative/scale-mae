@@ -50,7 +50,6 @@ class MaskedAutoencoderViT(nn.Module):
         decoder_embed_dim=512,
         decoder_depth=8,
         decoder_num_heads=16,
-        decoder_aux_loss_layers=0,
         mlp_ratio=4.0,
         norm_layer=nn.LayerNorm,
         norm_pix_loss=False,
@@ -592,29 +591,14 @@ class MaskedAutoencoderViT(nn.Module):
         knn_feats=False,
         input_res=None,
         target_res=None,
-        source_size=None,
     ):
         # images, targets: B X C X H0 X W0;  B X C X H1 X W1
         # input_res, target_res: []
-        if source_size is not None:
-            input_size = imgs.shape[2]
-            assert (
-                source_size % self.patch_size == 0
-            ), "Source size must be a valid multiple of patch size"
-            assert (
-                source_size <= input_size
-            ), "source size but be no greater than image size"
-            if source_size < input_size:
-                imgs = nn.functional.interpolate(
-                    imgs, (source_size, source_size), mode="area"
-                )  # downsample
-                input_res = input_res * (input_size / source_size)
-                target_size = targets.shape[2]
-                target_size_new = int(target_size * (source_size / input_size))
-                targets = nn.functional.interpolate(
-                    imgs, (target_size_new, target_size_new), mode="area"
-                )  # downsample
-                target_res = target_res * (target_size / target_size_new)
+        input_size = imgs.shape[2]
+        assert (
+            input_size % self.patch_size == 0
+        ), "Input size must be a valid multiple of patch size"
+
         if self.absolute_scale:
             input_res = torch.ones_like(input_res).to(input_res.device)
         if knn_feats:

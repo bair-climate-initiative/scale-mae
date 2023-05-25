@@ -178,8 +178,8 @@ def get_eval_dataset_and_transform(
         use_transforms = [transforms.ToTensor(), transform_normalize]
         if transforms_init:
             use_transforms.insert(0, transforms_init)
-        if eval_dataset_id == 'ucmerced':
-            use_transforms.insert(0, transforms.Resize((256,256)))
+        if eval_dataset_id == "ucmerced":
+            use_transforms.insert(0, transforms.Resize((256, 256)))
         transform_eval = transforms.Compose(use_transforms)
 
         if os.path.isdir(eval_dataset_path):
@@ -193,9 +193,9 @@ def get_eval_dataset_and_transform(
             transform_eval = transforms.Compose(
                 [
                     # Resize only the short side
-                    transforms.Resize(args.eval_scale),
+                    transforms.Resize(args.eval_input_size),
                     # TODO this may not be the right thing to do here.
-                    transforms.CenterCrop(args.eval_scale),
+                    transforms.CenterCrop(args.eval_input_size),
                     transforms.ToTensor(),
                     transforms.Normalize(
                         mean=ds_stats.PIXEL_MEANS, std=ds_stats.PIXEL_STD

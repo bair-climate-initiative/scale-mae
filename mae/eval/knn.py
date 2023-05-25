@@ -43,16 +43,16 @@ def kNN(
     testloader=None,
     sigma=0.07,
     feat_dim=768,
-    eval_scale=256,
-    eval_base_resolution=1.0,
+    eval_input_size=256,
+    eval_gsd_ratio=1.0,
     gsd_embed=False,
 ):
     is_dist = misc.is_dist_avail_and_initialized()
     net.eval()
     print(f"Starting KNN evaluation with K={cmd_args.knn}")
-    gsd_ratio = eval_base_resolution
+    gsd_ratio = eval_gsd_ratio
     if gsd_embed:
-        gsd_ratio = gsd_ratio * (224 / eval_scale)
+        gsd_ratio = gsd_ratio * (224 / eval_input_size)
 
     st_time = time.time()
     trainFeatures = torch.zeros(
@@ -81,7 +81,7 @@ def kNN(
         else:
             inputs = inputs.cuda()
         inputs = torch.nn.functional.interpolate(
-            inputs, (eval_scale, eval_scale), mode="area"
+            inputs, (eval_input_size, eval_input_size), mode="area"
         )
         features = net(
             inputs,
@@ -130,7 +130,6 @@ def kNN(
         for batch_idx, (inputs, targets) in get_knn_iter(
             enumerate(testloader), cmd_args.gpu
         ):
-
             # targets = targets.cuda(async=True)
             batchSize = inputs.size(0)
             if cmd_args.gpu is not None:
@@ -140,7 +139,7 @@ def kNN(
                 inputs = inputs.cuda()
                 targets = targets.cuda()
             inputs = torch.nn.functional.interpolate(
-                inputs, (eval_scale, eval_scale), mode="area"
+                inputs, (eval_input_size, eval_input_size), mode="area"
             )
 
             features = net(

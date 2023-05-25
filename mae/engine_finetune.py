@@ -49,7 +49,6 @@ def train_one_epoch(
     for data_iter_step, ((samples, res, _, target_res, labels), metadata) in enumerate(
         metric_logger.log_every(data_loader, print_freq, header)
     ):
-
         # we use a per iteration (instead of per epoch) lr scheduler
         if data_iter_step % accum_iter == 0:
             lr_sched.adjust_learning_rate(
@@ -115,14 +114,14 @@ def evaluate(
     data_loader,
     model,
     device,
-    eval_base_resolution=1.0,
+    eval_gsd_ratio=1.0,
     gsd_embed=False,
-    eval_scale=512,
+    eval_input_size=512,
     reference_size=512,
 ):
-    gsd_ratio = eval_base_resolution
+    gsd_ratio = eval_gsd_ratio
     if gsd_embed:
-        gsd_ratio = gsd_ratio * (reference_size / eval_scale)
+        gsd_ratio = gsd_ratio * (reference_size / eval_input_size)
 
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -132,7 +131,7 @@ def evaluate(
     # switch to evaluation mode
     model.eval()
 
-    for (samples, labels) in metric_logger.log_every(data_loader, 10, header):
+    for samples, labels in metric_logger.log_every(data_loader, 10, header):
         images = samples
         target = labels
         images = images.to(device, non_blocking=True)

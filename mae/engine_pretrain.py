@@ -28,7 +28,6 @@ def train_one_epoch(
     log_writer=None,
     args=None,
     scheduler=None,
-    source_size_scheduler=None,
     fix_resolution_scheduler=None,
 ):
     model.train(True)
@@ -58,7 +57,6 @@ def train_one_epoch(
 
         with torch.cuda.amp.autocast():
             target_size = scheduler.get_target_size(epoch)
-            source_size = source_size_scheduler.get_target_size(epoch)[0]
             fix_decoding_size = fix_resolution_scheduler.get_target_size(epoch)
             model.module.set_target_size(target_size)
             model.module.set_fix_decoding_size(fix_decoding_size)
@@ -68,7 +66,6 @@ def train_one_epoch(
                 targets=targets,
                 target_res=target_res,
                 mask_ratio=args.mask_ratio,
-                source_size=source_size,
             )
 
         if data_iter_step % print_freq == 0:

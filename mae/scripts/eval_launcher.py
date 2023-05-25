@@ -8,7 +8,8 @@ import yaml
 
 api = wandb.Api()
 import sys
-sys.path.append('/home/jacklishufan/scale-mae/mae')
+
+sys.path.append("/home/jacklishufan/scale-mae/mae")
 import util.misc as misc
 from main_pretrain import get_args_parser as pretrain_get_args_parser
 from main_pretrain import main as main_pretrain
@@ -39,19 +40,18 @@ def get_args_parser():
     )
 
     parser.add_argument(
-        "--eval_gsd",
-        action="store_true",
-        help="USE GSD Relative Embedding with base=224x224",
+        "--eval_enable_gsdpe", action="store_true", help="Use GSDPE with base=224x224"
     )
     parser.add_argument(
-        "--no-eval_gsd",
+        "--eval_disable_gsdpe",
         action="store_false",
         help="USE GSD Relative Embedding with base=224x224",
-        dest='eval_gsd'
+        dest="eval_enable_gsdpe",
     )
-    parser.set_defaults(eval_gsd=True)
+    parser.set_defaults(eval_enable_gsdpe=True)
+
     parser.add_argument(
-        "--eval_base_resolution",
+        "--eval_gsd_ratio",
         default=1.0,
         type=float,
         help="Global Multiplication factor of Positional Embedding Resolution in KNN",
@@ -76,10 +76,10 @@ def main(args):
             project="scale-mae-knn-reproduce",
             entity="bair-climate-initiative",
             resume="allow",
-            )
+        )
         run = wandb.init(**wandb_args)
         run_id = run.id
-        is_main= True
+        is_main = True
     default_args = pretrain_get_args_parser().parse_args([])
     for expid in exp_ids:
         try:
@@ -97,8 +97,8 @@ def main(args):
             for k, v in config.items():
                 setattr(margs, k, v)
             # set all of the distributed bits
-            margs.eval_gsd = args.eval_gsd
-            margs.eval_base_resolution = args.eval_base_resolution
+            margs.eval_enable_gsdpe = args.eval_enable_gsdpe
+            margs.eval_gsd_ratio = args.eval_gsd_ratio
             margs.knn = args.knn
             margs.local_rank = args.local_rank
             margs.dist_on_itp = args.dist_on_itp
@@ -109,9 +109,11 @@ def main(args):
 
             for eval_data in config["evals"]:
                 eval_id = eval_data["id"]
-                margs.eval_scale = eval_data["scales"]
+                margs.eval_input_size = eval_data["scales"]
                 margs.eval_dataset = eval_id
-                print(f"Starting {margs.eval_dataset} {margs.eval_scale}: {eval_id}")
+                print(
+                    f"Starting {margs.eval_dataset} {margs.eval_input_size}: {eval_id}"
+                )
                 margs.eval_only = True
                 margs.eval_train_fnames = os.path.join(eval_data["path"], "train.txt")
                 margs.eval_val_fnames = os.path.join(eval_data["path"], "val.txt")
@@ -126,7 +128,7 @@ def main(args):
                         f"bair-climate-initiative/scale-mae-knn-reproduce/{run_id}"
                     )
                     for scale, acc in res.items():
-                        wandb_run.summary[f"{eval_id}-knn-acc-{scale}"]= acc * 100.0
+                        wandb_run.summary[f"{eval_id}-knn-acc-{scale}"] = acc * 100.0
                     wandb_run.summary.update()
                     print("Sent results", res)
                     print("HERE")
