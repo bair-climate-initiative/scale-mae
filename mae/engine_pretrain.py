@@ -76,7 +76,7 @@ def train_one_epoch(
                 x[0],
                 y,
                 epoch,
-                f"target-size:{target_size}-output_size:{fix_decoding_size}",
+                f"target-size:{target_size}-output_size:{target_size}",
             )
             if metadata:
                 wandb_log_metadata(metadata)

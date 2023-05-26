@@ -294,7 +294,7 @@ def get_args_parser():
     parser.add_argument(
         "--eval_input_size",
         nargs="*",
-        default=[56, 112, 224],
+        default=[224],
         type=int,
         help="The scales at which to run evaluation for kNN",
     )
