@@ -27,26 +27,6 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvi
 pip install -e .
 ```
 
-Now shim timm (this is annoying and from the original MAE repo -- we'll try to fix at some point)
-
-Open something like the following file (it'll return as the file that throws an error when you run `echo $(conda info --envs | grep scalemae | awk '{print $NF}')/lib/python3.9/site-packages/timm/models/layers/helpers.py`, and replace the following code:
-
-```python
- from torch._six import container_abcs
-```
-
-With the following:
-```python
-import torch
-TORCH_MAJOR = int(torch.__version__.split('.')[0])
-TORCH_MINOR = int(torch.__version__.split('.')[1])
-
-if TORCH_MAJOR == 1 and TORCH_MINOR < 8:
-    from torch._six import container_abcs
-else:
-    import collections.abc as container_abcs
-```
-
 ## Data Preparation
 Download the FMoW-rgb dataset as described in the [here](https://github.com/fMoW/dataset) and then make a symlink to the data directory in the root of this repo.  For example, if you downloaded the data to `~/data/fmow-rgb`, then run:
 
