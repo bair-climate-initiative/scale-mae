@@ -8,6 +8,10 @@
 # DeiT: https://github.com/facebookresearch/deit
 # MoCo v3: https://github.com/facebookresearch/moco-v3
 # --------------------------------------------------------
+"""
+Example:
+    >>> from scalemae.main_linprobe import *  # NOQA
+"""
 
 import argparse
 import datetime
@@ -18,33 +22,35 @@ from pathlib import Path
 
 import kornia.augmentation as K
 import numpy as np
-import timm
 import timm.optim.optim_factory as optim_factory
 import torch
 import torch.backends.cudnn as cudnn
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 import torchvision.transforms as tv_transforms
-import wandb
 import yaml
 from kornia.augmentation import AugmentationSequential
 from kornia.constants import Resample
-from torch.utils.data import Subset
 from torch.utils.tensorboard import SummaryWriter
-from wandb_log import WANDB_LOG_IMG_CONFIG
 
-import models_vit
-import util.lr_decay as lrd
-import util.misc as misc
-from dataloaders.utils import get_dataset_and_sampler, get_eval_dataset_and_transform
-from engine_finetune import evaluate, train_one_epoch
-from lib.transforms import CustomCompose
 from PIL import Image
 from timm.models.layers import trunc_normal_
-from util.lars import LARS
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
+
+# from scalemae.util.lars import LARS
+import scalemae.util.lr_decay as lrd
+import scalemae.util.misc as misc
+from scalemae.dataloaders.utils import get_dataset_and_sampler, get_eval_dataset_and_transform
+from scalemae.lib.transforms import CustomCompose
+from scalemae.engine_finetune import evaluate, train_one_epoch
+from scalemae import models_vit
+from scalemae.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 Image.MAX_IMAGE_PIXELS = 1000000000
+
+try:
+    import wandb
+    from scalemae.wandb_log import WANDB_LOG_IMG_CONFIG
+except ImportError:
+    WANDB_LOG_IMG_CONFIG = None
+    wanddb = None
 
 
 def get_args_parser():
@@ -314,14 +320,17 @@ def main(args):
     # Validate that all sizes in target_size are multiples of 16
     if len(args.target_size) > 0:
         assert all(
-            [type(i) == int for i in args.target_size]
+            [isinstance(i, int) for i in args.target_size]
         ), "Invalid multiscale input, it should be a json list of int, e.g. [224,448]"
         assert all(
             [i % 16 == 0 for i in args.target_size]
         ), "Decoder resolution must be a multiple of patch size (16)"
 
     # set a random wandb id before fixing random seeds
-    random_wandb_id = wandb.util.generate_id()
+    if wanddb is not None:
+        random_wandb_id = wandb.util.generate_id()
+    else:
+        random_wandb_id = None
 
     print(f"job dir: {os.path.dirname(os.path.realpath(__file__))}")
     print(f"{args}".replace(", ", ",\n"))
@@ -356,7 +365,7 @@ def main(args):
         )
 
     # We will pass in the largest target_size to RRC
-    target_size = max(args.target_size)
+    # target_size = max(args.target_size)
     transforms_train = CustomCompose(
         rescale_transform=K.RandomResizedCrop(
             (args.input_size, args.input_size),
@@ -445,7 +454,7 @@ def main(args):
                 "pos_embed" in checkpoint_model
                 and checkpoint_model["pos_embed"].shape != state_dict["pos_embed"].shape
             ):
-                print(f"Removing key pos_embed from pretrained checkpoint")
+                print("Removing key pos_embed from pretrained checkpoint")
                 del checkpoint_model["pos_embed"]
 
         # interpolate position embedding
@@ -560,19 +569,23 @@ def main(args):
         exit(0)
 
     if misc.is_main_process() and not args.eval:
-        if not args.wandb_id:
-            args.wandb_id = random_wandb_id
 
-        wandb_args = dict(
-            project="fmow-ft",
-            entity="bair-climate-initiative",
-            resume="allow",
-            config=args.__dict__,
-        )
-        if args.name:
-            wandb_args.update(dict(name=args.name))
+        if wandb is not None:
+            if not args.wandb_id:
+                args.wandb_id = random_wandb_id
 
-        wandb.init(**wandb_args)
+            wandb_args = dict(
+                project="fmow-ft",
+                entity="bair-climate-initiative",
+                resume="allow",
+                config=args.__dict__,
+            )
+            if args.name:
+                wandb_args.update(dict(name=args.name))
+
+            wandb.init(**wandb_args)
+        else:
+            print('wandb is not available')
 
         if not args.finetune:
             print(f"Start linear probing for {args.epochs} epochs")
@@ -647,7 +660,8 @@ def main(args):
                 os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8"
             ) as f:
                 f.write(json.dumps(log_stats) + "\n")
-            wandb.log(log_stats)
+            if wandb is not None:
+                wandb.log(log_stats)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))

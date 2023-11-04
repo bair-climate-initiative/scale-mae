@@ -8,6 +8,10 @@
 # DeiT: https://github.com/facebookresearch/deit
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
+"""
+Example:
+    >>> from scalemae.main_finetune import *  # NOQA
+"""
 
 import argparse
 import datetime
@@ -21,16 +25,17 @@ import timm  # NOQA
 import torch
 import torch.backends.cudnn as cudnn
 
+from timm.data.mixup import Mixup
+from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
+from timm.models.layers import trunc_normal_
+
 from scalemae import models_vit
 from scalemae.util import lr_decay as lrd
 from scalemae.util import misc as misc
 from scalemae.engine_finetune import evaluate, train_one_epoch
-from timm.data.mixup import Mixup
-from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
-from timm.models.layers import trunc_normal_
-from util.datasets import build_dataset
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from util.pos_embed import interpolate_pos_embed
+from scalemae.util.datasets import build_dataset
+from scalemae.util.misc import NativeScalerWithGradNormCount as NativeScaler
+from scalemae.util.pos_embed import interpolate_pos_embed
 
 try:
     from torch.utils.tensorboard import SummaryWriter

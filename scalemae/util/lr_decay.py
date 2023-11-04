@@ -9,8 +9,6 @@
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
 
-import json
-
 
 def param_groups_lrd(
     model, weight_decay=0.05, no_weight_decay_list=[], layer_decay=0.75

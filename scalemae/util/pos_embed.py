@@ -58,7 +58,7 @@ def get_2d_sincos_pos_embed_with_resolution(
     _, n, h, w = grid.shape
     pos_embed = get_2d_sincos_pos_embed_from_grid_torch(
         embed_dim, grid
-    )  #  # (nxH*W, D/2)
+    )  # (nxH*W, D/2)
     pos_embed = pos_embed.reshape(n, h * w, embed_dim)
     if cls_token:
         pos_embed = torch.cat(
@@ -106,7 +106,7 @@ def get_1d_sincos_pos_embed_from_grid_torch(embed_dim, pos):
     out: (M, D)
     """
     assert embed_dim % 2 == 0
-    old_shape = pos
+    # old_shape = pos
     omega = torch.arange(embed_dim // 2, dtype=torch.float32, device=pos.device)
     omega /= embed_dim / 2.0
     omega = 1.0 / 10000**omega  # (D/2,)

@@ -12,6 +12,9 @@
 CommandLine:
     xdoctest -m /home/joncrall/code/watch/geowatch_tpl/submodules/scale-mae/scalemae/main_pretrain.py None
     python -m scalemae.main_pretrain --help
+
+Example:
+    >>> from scalemae.main_pretrain import *  # NOQA
 """
 import argparse
 import datetime
@@ -37,12 +40,6 @@ from kornia.constants import Resample
 from PIL import Image
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data import Subset
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from util.resolution_sched import (
-    get_output_size_scheduler,
-    get_source_size_scheduler,
-    get_target_size_scheduler,
-)
 
 # from scalemae.lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
 import scalemae.util.misc as misc
@@ -51,6 +48,12 @@ from scalemae.lib.transforms import CustomCompose
 from scalemae.dataloaders.utils import get_dataset_and_sampler, get_eval_dataset_and_transform
 from scalemae.engine_pretrain import train_one_epoch
 from scalemae.eval.knn import kNN
+from scalemae.util.misc import NativeScalerWithGradNormCount as NativeScaler
+from scalemae.util.resolution_sched import (
+    get_output_size_scheduler,
+    get_source_size_scheduler,
+    get_target_size_scheduler,
+)
 
 try:
     from torch.utils.tensorboard import SummaryWriter

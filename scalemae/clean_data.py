@@ -11,8 +11,6 @@ lock = threading.Lock()
 from PIL import Image  # NOQA
 
 Image.MAX_IMAGE_PIXELS = 1000000000
-directory = "data/naip"
-res = scandir.walk(directory)
 
 
 def f(item):
@@ -37,8 +35,15 @@ def f(item):
                 print(fpath)
 
 
-with open("badfile", "w") as file:
-    # write text to data
-    file.write(">>>>>SOF>>>>>>\n")
-pool = Pool(100)
-pool.map(f, res)
+def main():
+    directory = "data/naip"
+    res = scandir.walk(directory)
+    with open("badfile", "w") as file:
+        # write text to data
+        file.write(">>>>>SOF>>>>>>\n")
+    pool = Pool(100)
+    pool.map(f, res)
+
+
+if __name__ == '__main__':
+    main()

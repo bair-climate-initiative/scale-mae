@@ -1,19 +1,6 @@
-import cv2
-import matplotlib.pyplot as plt
 import numpy as np
-import util.misc as misc
 import wandb
-
-# def equalize(x):
-#     x = (x - x.min()) / (x.max()-x.min()+1e-6) * 255
-#     x = x.astype(np.uint8)
-#     r_image, g_image, b_image = cv2.split(x)
-#     r_image_eq = cv2.equalizeHist(r_image)
-#     g_image_eq = cv2.equalizeHist(g_image)
-#     b_image_eq = cv2.equalizeHist(b_image)
-
-#     image_eq = cv2.merge((r_image_eq, g_image_eq, b_image_eq))
-#     return image_eq
+import scalemae.util.misc as misc
 
 
 class WANDB_LOG_IMG_CONFIG:
@@ -36,6 +23,7 @@ def wandb_dump_input_output(x, ys, epoch=0, texts=""):
     x: H X W X C
     y: H X W X C
     """
+    import matplotlib.pyplot as plt
     if misc.is_main_process():
         n_imgs = 1 + len(ys)
         x = x.numpy()
@@ -59,6 +47,7 @@ def wandb_dump_images(imgs, name="vis", epoch=0):
     x: H X W X C
     y: H X W X C
     """
+    import matplotlib.pyplot as plt
     if misc.is_main_process():
         n_imgs = len(imgs)
         fig, axes = plt.subplots(1, n_imgs, figsize=(5 * n_imgs, 5))

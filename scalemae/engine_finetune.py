@@ -13,8 +13,6 @@ CommandLine:
     xdoctest -m scalemae.engine_finetune None
 
 Example:
-    >>> import sys, ubelt
-    >>> sys.path.append(ubelt.expandpath('~/code/watch/geowatch_tpl/submodules/scale-mae'))
     >>> from scalemae.engine_finetune import *  # NOQA
     >>> print(f'evaluate={evaluate}')
     >>> print(f'train_one_epoch={train_one_epoch}')

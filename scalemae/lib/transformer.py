@@ -17,6 +17,11 @@ from torch import Tensor, nn
 
 
 class Transformer(nn.Module):
+    """
+    Example:
+        >>> from scalemae.lib.transformer import *  # NOQA
+        >>> self = Transformer()
+    """
     def __init__(
         self,
         d_model=512,

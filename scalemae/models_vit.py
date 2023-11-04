@@ -8,6 +8,10 @@
 # timm: https://github.com/rwightman/pytorch-image-models/tree/master/timm
 # DeiT: https://github.com/facebookresearch/deit
 # --------------------------------------------------------
+"""
+Example:
+    >>> from scalemae.models_vit import *  # NOQA
+"""
 
 from functools import partial
 

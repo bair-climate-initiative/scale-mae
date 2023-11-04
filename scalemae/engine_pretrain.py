@@ -8,6 +8,10 @@
 # DeiT: https://github.com/facebookresearch/deit
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
+"""
+Example:
+    >>> from scalemae.engine_pretrain import *  # NOQA
+"""
 import math
 import sys
 from typing import Iterable
@@ -17,7 +21,7 @@ import scalemae.util.lr_sched as lr_sched
 import scalemae.util.misc as misc
 
 try:
-    from wandb_log import wandb_dump_input_output, wandb_log_metadata
+    from scalemae.wandb_log import wandb_dump_input_output, wandb_log_metadata
 except ImportError:
     wandb_dump_input_output = None
     wandb_log_metadata = None

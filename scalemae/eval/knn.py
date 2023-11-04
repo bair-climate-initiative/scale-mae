@@ -1,3 +1,7 @@
+"""
+Example:
+    >>> from scalemae.eval.knn import *  # NOQA
+"""
 import time
 
 import torch

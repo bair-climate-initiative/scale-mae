@@ -1,4 +1,8 @@
-from lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
+"""
+Example:
+    >>> from scalemae.util.resolution_sched import *  # NOQA
+"""
+from scalemae.lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
 import numpy as np
 import re
 

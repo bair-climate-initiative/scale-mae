@@ -2,6 +2,11 @@ from torch import nn
 
 
 class Norm2d(nn.Module):
+    """
+    Example:
+        >>> from scalemae.lib.fpn import *  # NOQA
+        >>> self = Norm2d(3)
+    """
     def __init__(self, embed_dim):
         super().__init__()
         self.ln = nn.LayerNorm(embed_dim, eps=1e-6)
@@ -14,6 +19,11 @@ class Norm2d(nn.Module):
 
 
 class FPNHead(nn.Module):
+    """
+    Example:
+        >>> from scalemae.lib.fpn import *  # NOQA
+        >>> self = FPNHead(3)
+    """
     def __init__(self, embed_dim, share_weights=False) -> None:
         super().__init__()
         self.share_weights = share_weights

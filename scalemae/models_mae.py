@@ -8,6 +8,13 @@
 # timm: https://github.com/rwightman/pytorch-image-models/tree/master/timm
 # DeiT: https://github.com/facebookresearch/deit
 # --------------------------------------------------------
+"""
+Example:
+    >>> from scalemae.models_mae import *  # NOQA
+    >>> print(f'mae_vit_base_patch16={mae_vit_base_patch16}')
+    >>> print(f'mae_vit_large_patch16={mae_vit_large_patch16}')
+    >>> print(f'mae_vit_huge_patch14={mae_vit_huge_patch14}')
+"""
 
 # import imp
 from functools import partial
