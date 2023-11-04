@@ -8,6 +8,7 @@
 # DeiT: https://github.com/facebookresearch/deit
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
+# flake8: noqa
 import argparse
 import datetime
 import json
@@ -22,36 +23,57 @@ import timm
 import torch
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as tv_transforms
-import wandb
-from torch.utils.tensorboard import SummaryWriter
 
 import os
 import tempfile
 
-import kornia.augmentation as K
 import matplotlib.pyplot as plt
-import models_mae
 import numpy as np
 import timm.optim.optim_factory as optim_factory
-import util.misc as misc
 import yaml
-from dataloaders.resic45 import build_resic
-from dataloaders.utils import get_dataset_and_sampler
-from engine_pretrain import train_one_epoch
-from eval.knn import kNN
-from kornia.augmentation import AugmentationSequential
-from kornia.constants import Resample
-from lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
-from lib.transforms import CustomCompose
+
 from PIL import Image
+
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data import DataLoader, Subset
-from torchgeo.datasets import NAIP, stack_samples
-from torchgeo.datasets.utils import download_url
-from torchgeo.samplers import RandomGeoSampler, Units
+
 from torchvision import transforms
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from util.misc import is_main_process
-from wandb_log import WANDB_LOG_IMG_CONFIG
+
+try:
+    from torchgeo.datasets import NAIP, stack_samples
+    from torchgeo.datasets.utils import download_url
+    from torchgeo.samplers import RandomGeoSampler, Units
+except ImportError:
+    print('warning: could not import torchgeo')
+
+try:
+    import kornia.augmentation as K
+    from kornia.augmentation import AugmentationSequential
+    from kornia.constants import Resample
+except ImportError:
+    print('warning: could not import kornia')
+
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except ImportError:
+    print('warning: could not import torch.utils.tensorboard')
+
+try:
+    import wandb
+    from wandb_log import WANDB_LOG_IMG_CONFIG
+except ImportError:
+    print('warning: could not import kornia')
+
+import scalemae.models_mae
+import scalemae.util.misc as misc
+from scalemae.util.misc import NativeScalerWithGradNormCount as NativeScaler
+from scalemae.util.misc import is_main_process
+from scalemae.engine_pretrain import train_one_epoch
+from scalemae.lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
+from scalemae.lib.transforms import CustomCompose
+from scalemae.dataloaders.resic45 import build_resic
+from scalemae.dataloaders.utils import get_dataset_and_sampler
+from scalemae.eval.knn import kNN
+
 
 Image.MAX_IMAGE_PIXELS = 1000000000

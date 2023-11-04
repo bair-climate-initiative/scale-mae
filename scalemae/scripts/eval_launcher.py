@@ -6,12 +6,14 @@ import torch
 import wandb
 import yaml
 
+# api = wandb.Api()
+# import sys
+# sys.path.append('/home/jacklishufan/scale-mae/mae')
+import scalemae.util.misc as misc
+from scalemae.main_pretrain import get_args_parser as pretrain_get_args_parser
+from scalemae.main_pretrain import main as main_pretrain
+
 api = wandb.Api()
-import sys
-sys.path.append('/home/jacklishufan/scale-mae/mae')
-import util.misc as misc
-from main_pretrain import get_args_parser as pretrain_get_args_parser
-from main_pretrain import main as main_pretrain
 
 
 def get_args_parser():

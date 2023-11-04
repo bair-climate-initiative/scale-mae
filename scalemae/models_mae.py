@@ -9,16 +9,16 @@
 # DeiT: https://github.com/facebookresearch/deit
 # --------------------------------------------------------
 
-import imp
+# import imp
 from functools import partial
 
 import torch
 import torch.nn as nn
-from lib.fpn import FCNHead, FPNHead
-from lib.gpt import Block as GPTBlock
-from lib.transformer import MAEDecoder
+from scalemae.lib.fpn import FCNHead, FPNHead
+from scalemae.lib.gpt import Block as GPTBlock
+# from scalemae.lib.transformer import MAEDecoder
 from timm.models.vision_transformer import Block, PatchEmbed
-from util.pos_embed import (
+from scalemae.util.pos_embed import (
     get_2d_sincos_pos_embed,
     get_2d_sincos_pos_embed_with_resolution,
 )

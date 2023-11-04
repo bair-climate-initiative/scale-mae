@@ -17,21 +17,25 @@ import time
 from pathlib import Path
 
 import numpy as np
-import timm
+import timm  # NOQA
 import torch
 import torch.backends.cudnn as cudnn
-from torch.utils.tensorboard import SummaryWriter
 
-import models_vit
-import util.lr_decay as lrd
-import util.misc as misc
-from engine_finetune import evaluate, train_one_epoch
+from scalemae import models_vit
+from scalemae.util import lr_decay as lrd
+from scalemae.util import misc as misc
+from scalemae.engine_finetune import evaluate, train_one_epoch
 from timm.data.mixup import Mixup
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.models.layers import trunc_normal_
 from util.datasets import build_dataset
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 from util.pos_embed import interpolate_pos_embed
+
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except ImportError:
+    SummaryWriter = None
 
 
 def get_args_parser():
@@ -304,11 +308,12 @@ def main(args):
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
 
-    if global_rank == 0 and args.log_dir is not None and not args.eval:
-        os.makedirs(args.log_dir, exist_ok=True)
-        log_writer = SummaryWriter(log_dir=args.log_dir)
-    else:
-        log_writer = None
+    if SummaryWriter is not None:
+        if global_rank == 0 and args.log_dir is not None and not args.eval:
+            os.makedirs(args.log_dir, exist_ok=True)
+            log_writer = SummaryWriter(log_dir=args.log_dir)
+        else:
+            log_writer = None
 
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train,

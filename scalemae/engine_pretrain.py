@@ -13,9 +13,14 @@ import sys
 from typing import Iterable
 
 import torch
-import util.lr_sched as lr_sched
-import util.misc as misc
-from wandb_log import wandb_dump_input_output, wandb_log_metadata
+import scalemae.util.lr_sched as lr_sched
+import scalemae.util.misc as misc
+
+try:
+    from wandb_log import wandb_dump_input_output, wandb_log_metadata
+except ImportError:
+    wandb_dump_input_output = None
+    wandb_log_metadata = None
 
 
 def train_one_epoch(
@@ -77,14 +82,16 @@ def train_one_epoch(
                 for y_i in y
             ]
             x = torch.einsum("nchw->nhwc", samples[:1]).detach().cpu()
-            wandb_dump_input_output(
-                x[0],
-                y,
-                epoch,
-                f"target-size:{target_size}-output_size:{fix_decoding_size}",
-            )
+            if wandb_dump_input_output is not None:
+                wandb_dump_input_output(
+                    x[0],
+                    y,
+                    epoch,
+                    f"target-size:{target_size}-output_size:{fix_decoding_size}",
+                )
             if metadata:
-                wandb_log_metadata(metadata)
+                if wandb_log_metadata is not None:
+                    wandb_log_metadata(metadata)
 
         loss_value = loss.item()
 

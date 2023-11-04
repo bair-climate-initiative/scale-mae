@@ -8,14 +8,25 @@
 # DeiT: https://github.com/facebookresearch/deit
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
+"""
+CommandLine:
+    xdoctest -m scalemae.engine_finetune None
+
+Example:
+    >>> import sys, ubelt
+    >>> sys.path.append(ubelt.expandpath('~/code/watch/geowatch_tpl/submodules/scale-mae'))
+    >>> from scalemae.engine_finetune import *  # NOQA
+    >>> print(f'evaluate={evaluate}')
+    >>> print(f'train_one_epoch={train_one_epoch}')
+"""
 
 import math
 import sys
 from typing import Iterable, Optional
 
 import torch
-import util.lr_sched as lr_sched
-import util.misc as misc
+import scalemae.util.lr_sched as lr_sched
+import scalemae.util.misc as misc
 from timm.data import Mixup
 from timm.utils import accuracy
 

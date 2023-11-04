@@ -1,14 +1,14 @@
 import os
 import threading
 from multiprocessing.pool import ThreadPool as Pool
-from threading import Thread
+# from threading import Thread
 
 import numpy as np
 import scandir
-from tqdm.cli import tqdm
+# from tqdm.cli import tqdm
 
 lock = threading.Lock()
-from PIL import Image
+from PIL import Image  # NOQA
 
 Image.MAX_IMAGE_PIXELS = 1000000000
 directory = "data/naip"
@@ -24,7 +24,7 @@ def f(item):
                 img = Image.open(fpath)
                 arr = np.array(img)
                 arr.shape
-            except:
+            except Exception:
                 ...
                 # acquire the lock
                 lock.acquire()

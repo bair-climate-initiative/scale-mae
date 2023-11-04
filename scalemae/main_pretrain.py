@@ -8,6 +8,11 @@
 # DeiT: https://github.com/facebookresearch/deit
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
+"""
+CommandLine:
+    xdoctest -m /home/joncrall/code/watch/geowatch_tpl/submodules/scale-mae/scalemae/main_pretrain.py None
+    python -m scalemae.main_pretrain --help
+"""
 import argparse
 import datetime
 import json
@@ -15,32 +20,20 @@ import os
 import sys
 import time
 from pathlib import Path
-from re import L
 
 import numpy as np
-import timm
+import timm  # NOQA
 import torch
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as tv_transforms
-import wandb
-from torch.utils.tensorboard import SummaryWriter
-
-import os
-import re
 
 import kornia.augmentation as K
-import models_mae
-import numpy as np
+import numpy as np  # NOQA
+
 import timm.optim.optim_factory as optim_factory
-import util.misc as misc
 import yaml
-from dataloaders.utils import get_dataset_and_sampler, get_eval_dataset_and_transform
-from engine_pretrain import train_one_epoch
-from eval.knn import kNN
 from kornia.augmentation import AugmentationSequential
 from kornia.constants import Resample
-from lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
-from lib.transforms import CustomCompose
 from PIL import Image
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data import Subset
@@ -50,7 +43,26 @@ from util.resolution_sched import (
     get_source_size_scheduler,
     get_target_size_scheduler,
 )
-from wandb_log import WANDB_LOG_IMG_CONFIG
+
+# from scalemae.lib.scheduler import ConstantResolutionScheduler, RandomResolutionScheduler
+import scalemae.util.misc as misc
+from scalemae import models_mae
+from scalemae.lib.transforms import CustomCompose
+from scalemae.dataloaders.utils import get_dataset_and_sampler, get_eval_dataset_and_transform
+from scalemae.engine_pretrain import train_one_epoch
+from scalemae.eval.knn import kNN
+
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except Exception:
+    SummaryWriter = None
+
+try:
+    import wandb
+    from wandb_log import WANDB_LOG_IMG_CONFIG
+except Exception:
+    wandb = None
+    WANDB_LOG_IMG_CONFIG = None
 
 Image.MAX_IMAGE_PIXELS = 1000000000
 
@@ -420,7 +432,10 @@ def main(args):
             ), "Decoder resolution must be a multiple of patch size (16)"
 
         # set a random wandb id before fixing random seeds
-        random_wandb_id = wandb.util.generate_id()
+        if wandb is not None:
+            random_wandb_id = wandb.util.generate_id()
+        else:
+            random_wandb_id = None
 
         print(f"job dir: {os.path.dirname(os.path.realpath(__file__))}")
         print(f"{args}".replace(", ", ",\n"))
@@ -428,9 +443,10 @@ def main(args):
         with open(args.config) as f:
             config = yaml.safe_load(f.read())
         args.data_config = config  # save on args so that it's prop'd to wandb
-        WANDB_LOG_IMG_CONFIG.mean = np.array(config["data"]["mean"])
-        WANDB_LOG_IMG_CONFIG.std = np.array(config["data"]["std"])
-        WANDB_LOG_IMG_CONFIG.factor = config["data"]["vis_factor"]
+        if WANDB_LOG_IMG_CONFIG is not None:
+            WANDB_LOG_IMG_CONFIG.mean = np.array(config["data"]["mean"])
+            WANDB_LOG_IMG_CONFIG.std = np.array(config["data"]["std"])
+            WANDB_LOG_IMG_CONFIG.factor = config["data"]["vis_factor"]
 
         if config["data"]["type"] in ["fmow"]:
             # We read in an image from PIL and crop an area twice the size of input size
