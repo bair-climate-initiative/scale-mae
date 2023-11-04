@@ -425,7 +425,7 @@ def main(args):
         # Validate that all sizes in target_size are multiples of 16
         if len(args.target_size) > 0:
             assert all(
-                [type(i) == int for i in args.target_size]
+                [isinstance(i, int) for i in args.target_size]
             ), "Invalid multiscale input, it should be a json list of int, e.g. [224,448]"
             assert all(
                 [i % 16 == 0 for i in args.target_size]

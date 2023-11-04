@@ -38,8 +38,8 @@ ln -s ~/data/fmow-rgb data
 Datasets are defined by config files in `config`.
 ```
 # change to num of gpus you have
-python -m torch.distributed.launch --nproc_per_node=4
-main_pretrain.py
+python -m torch.distributed.launch --nproc_per_node=4 \
+    -m scalemae.main_pretrain
 ```
 
 use `-h` to see details of all arguments. 
@@ -56,12 +56,12 @@ use `-h` to see details of all arguments.
 ### KNN Evaluation
 ```
 python -m torch.distributed.launch --nproc_per_node=4 \
-main_pretrain.py \
---resume <path-to-model-checkpoint.pth> \
---eval_only \
---eval_dataset <eval_dataset_name>  \
---eval_train_fnames <train_split_file>  \
---eval_val_fnames <val_split_file>
+    -m scalemae.main_pretrain \
+        --resume <path-to-model-checkpoint.pth> \
+        --eval_only \
+        --eval_dataset <eval_dataset_name>  \
+        --eval_train_fnames <train_split_file>  \
+        --eval_val_fnames <val_split_file>
 ```
 
 We support resisc (default), airound, mlrsnet, and fmow kNN evaluation. We provide all split files in `splits` folder. If `--eval_train_fnames` and `--eval_val_fnames` are specified, the content of these two txt files will be read as the train split and test split. If this is the case, the root folder of the dataset is assumed to be the parent folder of such txt files. Alternatively, one can specify `--eval_path`. If this is the case, 90% of the data is randomly selected as the training set while the 10% is selected as the test set. The dataset is assumed to have the standard structure of `ImageFolder` in `torchvision`.  
@@ -70,8 +70,8 @@ We support resisc (default), airound, mlrsnet, and fmow kNN evaluation. We provi
 
 ```
 python -m torch.distributed.launch --nproc_per_node=4 \
-main_linprobe.py \
---checkpoint_path <path-to-model-checkpoint.pth>
+    scalemae.main_linprobe \
+        --checkpoint_path <path-to-model-checkpoint.pth>
 ```
 
 Use the flag `--finetune` to enable full fine-tuning instead of a linear probing.
