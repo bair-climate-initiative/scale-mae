@@ -2,7 +2,6 @@ import time
 
 import torch
 import torch.distributed
-# import wandb
 from torch.distributed import all_reduce
 from tqdm.cli import tqdm
 import scalemae.util.misc as misc
