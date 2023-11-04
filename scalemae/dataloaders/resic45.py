@@ -3,7 +3,7 @@ import os
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
-from .imagelist import ImageList
+from scalemae.dataloaders.imagelist import ImageList
 
 
 class RESIC_DATASET_STATS:

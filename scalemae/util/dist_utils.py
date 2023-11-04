@@ -9,6 +9,7 @@ from typing import List
 import numpy as np
 import torch
 import torch.distributed as dist
+
 from classy_vision.generic.distributed_util import (
     convert_to_distributed_tensor,
     convert_to_normal_tensor,

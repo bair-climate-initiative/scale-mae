@@ -5,7 +5,6 @@ import math
 import os
 import warnings
 from contextlib import contextmanager
-from pathlib import Path
 
 import numpy as np
 import rasterio

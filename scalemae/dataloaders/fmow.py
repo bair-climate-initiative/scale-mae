@@ -2,7 +2,7 @@ import os
 
 from torchvision.datasets import ImageFolder
 
-from .imagelist import ImageList
+from scalemae.dataloaders.imagelist import ImageList
 
 
 class FMOW_DATASET_STATS:

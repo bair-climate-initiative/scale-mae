@@ -1,10 +1,11 @@
 import torch
-from lib.transforms import get_inputs_outputs
-from samplers.distributed import DistributedRandomGeoSampler
-from torchgeo.datasets import RasterDataset, stack_samples
+from torchgeo.datasets import stack_samples
 from torchgeo.samplers import Units
 
-from .geo import CustomRasterDataset
+from scalemae.dataloaders.geo import CustomRasterDataset
+
+from scalemae.lib.transforms import get_inputs_outputs
+from scalemae.samplers.distributed import DistributedRandomGeoSampler
 
 
 class Sentinel2StackSampleCollateFn:

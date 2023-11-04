@@ -1,24 +1,24 @@
 import os
 
 import torch
-import util.misc as misc
+import scalemae.util.misc as misc  # NOQA
 from torchvision import datasets, transforms
 from torchvision.datasets import ImageFolder
 
-from .airound import AIROUND_DATASET_STATS
-from .cvbrct import CVBRCT_DATASET_STATS
-from .eurosat import EUROSAT_DATASET_STATS
-from .fmow import FMOW_DATASET_STATS, build_fmow
-from .imagelist import ImageList
-from .imagenet100 import build_imagenet_sampler
-from .mlrsnet import MLRSNET_DATASET_STATS
-from .naip import build_naip_sampler
-from .optimal import OPTIMAL_DATASET_STATS
-from .resic45 import RESIC_DATASET_STATS, build_resic
-from .sentinel2 import build_sentinel_sampler
-from .ucmerced import UCMERCED_DATASET_STATS
-from .whurs import WHURS_DATASET_STATS
-from .xview import build_xview2_sampler
+from scalemae.dataloaders.airound import AIROUND_DATASET_STATS
+from scalemae.dataloaders.cvbrct import CVBRCT_DATASET_STATS
+from scalemae.dataloaders.eurosat import EUROSAT_DATASET_STATS
+from scalemae.dataloaders.fmow import FMOW_DATASET_STATS, build_fmow
+from scalemae.dataloaders.imagelist import ImageList
+from scalemae.dataloaders.imagenet100 import build_imagenet_sampler
+from scalemae.dataloaders.mlrsnet import MLRSNET_DATASET_STATS
+from scalemae.dataloaders.naip import build_naip_sampler
+from scalemae.dataloaders.optimal import OPTIMAL_DATASET_STATS
+from scalemae.dataloaders.resic45 import RESIC_DATASET_STATS, build_resic
+from scalemae.dataloaders.sentinel2 import build_sentinel_sampler
+from scalemae.dataloaders.ucmerced import UCMERCED_DATASET_STATS
+from scalemae.dataloaders.whurs import WHURS_DATASET_STATS
+from scalemae.dataloaders.xview import build_xview2_sampler
 
 dataset_stats_lookup = {
     "airound": AIROUND_DATASET_STATS,

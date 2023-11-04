@@ -1,14 +1,11 @@
-# import imp
-# import os
 import time
 
 import torch
 import torch.distributed
-import util.misc as misc
 # import wandb
 from torch.distributed import all_reduce
-# from torch.nn.functional import adaptive_avg_pool2d
 from tqdm.cli import tqdm
+import scalemae.util.misc as misc
 from scalemae.util.dist_utils import gather_from_all
 
 

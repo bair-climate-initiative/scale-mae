@@ -9,6 +9,10 @@
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
 # flake8: noqa
+"""
+Example:
+    >>> from scalemae.main_eval import *  # NOQA
+"""
 import argparse
 import datetime
 import json

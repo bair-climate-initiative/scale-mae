@@ -1,0 +1,9 @@
+classy_vision
+kornia
+torchgeo
+torch
+numpy>=1.21.0,<2.0.0
+timm
+rasterio
+torchvision
+geopandas

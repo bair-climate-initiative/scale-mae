@@ -17,7 +17,7 @@ from torch import Tensor
 from torchgeo.datasets.geo import GeoDataset
 from torchgeo.datasets.utils import BoundingBox, disambiguate_timestamp
 
-from . import merge
+from scalemae.dataloaders import merge
 
 
 class CustomRasterDataset(GeoDataset):

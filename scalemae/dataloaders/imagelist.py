@@ -1,6 +1,6 @@
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, cast
-
+from typing import Any, Callable, Dict, List, Optional, Tuple
+from PIL import Image
 from torchvision.datasets import VisionDataset
 
 
@@ -37,7 +37,7 @@ class ImageList(VisionDataset):
         """ """
         classes = sorted(list({self.filename_to_class(fn) for fn in filenames}))
         if len(classes) == 0:
-            raise FileNotFoundError(f"Couldn't find any classes in filenames.")
+            raise FileNotFoundError("Couldn't find any classes in filenames.")
 
         class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
         return classes, class_to_idx
@@ -61,9 +61,6 @@ class ImageList(VisionDataset):
 
     def __len__(self) -> int:
         return len(self.samples)
-
-
-from PIL import Image
 
 
 def pil_loader(path: str) -> Image.Image:

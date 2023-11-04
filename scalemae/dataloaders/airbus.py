@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-import torchvision.transforms.functional as F
+# import torchvision.transforms.functional as F
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -74,7 +74,7 @@ class Airbus(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        ret = {}
+        # ret = {}
         scene = self.scenes[idx]
         img = np.array(Image.open(self.root_dir / scene[0]), dtype=np.float32)
         img = np.transpose(img, (2, 0, 1))
