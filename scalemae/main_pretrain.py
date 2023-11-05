@@ -281,7 +281,7 @@ def get_args_parser():
     parser.add_argument(
         "--world_size", default=1, type=int, help="number of distributed processes"
     )
-    parser.add_argument("--local_rank", default=-1, type=int)
+    parser.add_argument("--local_rank", "--local-rank", default=-1, type=int)
     parser.add_argument("--dist_on_itp", action="store_true")
     parser.add_argument(
         "--dist_url", default="env://", help="url used to set up distributed training"
@@ -643,23 +643,22 @@ def main(args):
     # breakpoint()
 
     if misc.is_main_process() and not args.eval_only:
-        if not args.wandb_id:
-            args.wandb_id = random_wandb_id
-
         tag = "encoder-decoder"
+        if wandb is not None:
+            if not args.wandb_id:
+                args.wandb_id = random_wandb_id
+            wandb_args = dict(
+                project="multiscale_mae",
+                entity="bair-climate-initiative",
+                id=args.wandb_id,
+                resume="allow",
+                tags=[tag],
+                config=args.__dict__,
+            )
+            if args.name:
+                wandb_args.update(dict(name=args.name))
 
-        wandb_args = dict(
-            project="multiscale_mae",
-            entity="bair-climate-initiative",
-            id=args.wandb_id,
-            resume="allow",
-            tags=[tag],
-            config=args.__dict__,
-        )
-        if args.name:
-            wandb_args.update(dict(name=args.name))
-
-        wandb.init(**wandb_args)
+            wandb.init(**wandb_args)
 
         print(f"Start training for {args.epochs} epochs")
         print("Model = %s" % str(model_without_ddp))
@@ -751,13 +750,15 @@ def main(args):
                 os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8"
             ) as f:
                 f.write(json.dumps(log_stats) + "\n")
-            wandb.log(log_stats)
+            if wandb is not None:
+                wandb.log(log_stats)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print(f"Training time {total_time_str}")
-    if misc.is_main_process():
-        wandb.finish()
+    if wandb is not None:
+        if misc.is_main_process():
+            wandb.finish()
 
     return eval_res
 

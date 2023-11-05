@@ -79,3 +79,69 @@ Use the flag `--finetune` to enable full fine-tuning instead of a linear probing
 ---
 
 > Note: THIS SOFTWARE AND/OR DATA WAS DEPOSITED IN THE BAIR OPEN RESEARCH COMMONS REPOSITORY ON 2/8/23.
+
+
+
+### Demo With DemoData
+
+
+```bash
+
+# Create demo train / vali data
+DATA_PATH=$(python -m scalemae.demo)
+
+echo "
+data:
+  type: ImageList
+  length: 10
+  img_dir: '$DATA_PATH'
+  mean: [0.46921533, 0.46026663, 0.41329921]
+  std: [0.1927, 0.1373, 0.1203]
+  vis_factor: 1.0
+" > $DATA_PATH/demo.yaml
+
+cat  $DATA_PATH/demo.yaml
+
+
+DEFAULT_ROOT_DIR=$HOME/exps/scalemae_demo
+
+echo "
+DEFAULT_ROOT_DIR      = $DEFAULT_ROOT_DIR
+DATA_PATH             = $DATA_PATH
+"
+
+
+mkdir -p $DEFAULT_ROOT_DIR
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=1 --master_port=11085 -m scalemae.main_pretrain \
+    --output_dir $DEFAULT_ROOT_DIR \
+    --log_dir  $DEFAULT_ROOT_DIR \
+    --config $DATA_PATH/demo.yaml \
+    --eval_path "$DATA_PATH" \
+    --batch_size 4 \
+    --model mae_vit_base_patch16  \
+    --mask_ratio 0.75 \
+    --num_workers 0 \
+    --epochs 300 \
+    --target_size 224\
+    --input_size 224\
+    --self_attention\
+    --scale_min 0.2 \
+    --scale_max 1.0 \
+    --warmup_epochs 40 \
+    --blr 1.5e-4 --weight_decay 0.05 \
+    --decoder_aux_loss_layers 1\
+    --target_size_scheduler constant\
+    --decoder_depth 8 \
+    --no_autoresume \
+    --use_mask_token \
+    --skip_knn_eval \
+    --fixed_output_size_min 224\
+    --fixed_output_size_max 336\
+    --absolute_scale 
+
+    --loss_masking\
+    --independent_fcn_head \
+    --decoder_mode encoder\
+
+
+```
