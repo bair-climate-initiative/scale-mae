@@ -10,7 +10,7 @@
 # --------------------------------------------------------
 """
 CommandLine:
-    xdoctest -m scalemae.engine_finetune None
+    xdoctest -m scalemae.engine_finetune __doc__:0
 
 Example:
     >>> from scalemae.engine_finetune import *  # NOQA
