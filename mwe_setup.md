@@ -61,7 +61,11 @@ pip install -e .
 
 pip install -r requirements/runtime.txt
 
+# Install kwcoco for simple demodata
 pip install kwcoco[headless]
+
+# Install geowatch for demodata with a CRS
+pip install geowatch[headless]
 
 # Create demo train / vali data
 DATA_PATH=$(python -m scalemae.demo)
