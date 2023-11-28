@@ -87,6 +87,8 @@ Use the flag `--finetune` to enable full fine-tuning instead of a linear probing
 
 ```bash
 
+pip install kwcoco[headless]
+
 # Create demo train / vali data
 DATA_PATH=$(python -m scalemae.demo)
 
@@ -138,6 +140,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=1 -
     --fixed_output_size_min 224\
     --fixed_output_size_max 336\
     --absolute_scale 
+
 
     --loss_masking\
     --independent_fcn_head \
