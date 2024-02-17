@@ -1,0 +1,7 @@
+data:
+  type: NAIP
+  length: 100000
+  img_dir: 'naip'
+  mean: [0.46921533, 0.46026663, 0.41329921]
+  std: [0.1927, 0.1373, 0.1203]
+  vis_factor: 1.0

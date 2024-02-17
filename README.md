@@ -38,8 +38,8 @@ ln -s ~/data/fmow-rgb data
 Datasets are defined by config files in `config`.
 ```
 # change to num of gpus you have
-python -m torch.distributed.launch --nproc_per_node=4
-main_pretrain.py
+python -m torch.distributed.launch --nproc_per_node=4 \
+    -m scalemae.main_pretrain
 ```
 
 use `-h` to see details of all arguments. 
@@ -56,12 +56,12 @@ use `-h` to see details of all arguments.
 ### KNN Evaluation
 ```
 python -m torch.distributed.launch --nproc_per_node=4 \
-main_pretrain.py \
---resume <path-to-model-checkpoint.pth> \
---eval_only \
---eval_dataset <eval_dataset_name>  \
---eval_train_fnames <train_split_file>  \
---eval_val_fnames <val_split_file>
+    -m scalemae.main_pretrain \
+        --resume <path-to-model-checkpoint.pth> \
+        --eval_only \
+        --eval_dataset <eval_dataset_name>  \
+        --eval_train_fnames <train_split_file>  \
+        --eval_val_fnames <val_split_file>
 ```
 
 We support resisc (default), airound, mlrsnet, and fmow kNN evaluation. We provide all split files in `splits` folder. If `--eval_train_fnames` and `--eval_val_fnames` are specified, the content of these two txt files will be read as the train split and test split. If this is the case, the root folder of the dataset is assumed to be the parent folder of such txt files. Alternatively, one can specify `--eval_path`. If this is the case, 90% of the data is randomly selected as the training set while the 10% is selected as the test set. The dataset is assumed to have the standard structure of `ImageFolder` in `torchvision`.  
@@ -70,8 +70,8 @@ We support resisc (default), airound, mlrsnet, and fmow kNN evaluation. We provi
 
 ```
 python -m torch.distributed.launch --nproc_per_node=4 \
-main_linprobe.py \
---checkpoint_path <path-to-model-checkpoint.pth>
+    scalemae.main_linprobe \
+        --checkpoint_path <path-to-model-checkpoint.pth>
 ```
 
 Use the flag `--finetune` to enable full fine-tuning instead of a linear probing.
@@ -79,3 +79,72 @@ Use the flag `--finetune` to enable full fine-tuning instead of a linear probing
 ---
 
 > Note: THIS SOFTWARE AND/OR DATA WAS DEPOSITED IN THE BAIR OPEN RESEARCH COMMONS REPOSITORY ON 2/8/23.
+
+
+
+### Demo With DemoData
+
+
+```bash
+
+pip install kwcoco[headless]
+
+# Create demo train / vali data
+DATA_PATH=$(python -m scalemae.demo)
+
+echo "
+data:
+  type: ImageList
+  length: 10
+  img_dir: '$DATA_PATH'
+  mean: [0.46921533, 0.46026663, 0.41329921]
+  std: [0.1927, 0.1373, 0.1203]
+  vis_factor: 1.0
+" > $DATA_PATH/demo.yaml
+
+cat  $DATA_PATH/demo.yaml
+
+
+DEFAULT_ROOT_DIR=$HOME/exps/scalemae_demo
+
+echo "
+DEFAULT_ROOT_DIR      = $DEFAULT_ROOT_DIR
+DATA_PATH             = $DATA_PATH
+"
+
+
+mkdir -p $DEFAULT_ROOT_DIR
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=1 --master_port=11085 -m scalemae.main_pretrain \
+    --output_dir $DEFAULT_ROOT_DIR \
+    --log_dir  $DEFAULT_ROOT_DIR \
+    --config $DATA_PATH/demo.yaml \
+    --eval_path "$DATA_PATH" \
+    --batch_size 4 \
+    --model mae_vit_base_patch16  \
+    --mask_ratio 0.75 \
+    --num_workers 0 \
+    --epochs 300 \
+    --target_size 224\
+    --input_size 224\
+    --self_attention\
+    --scale_min 0.2 \
+    --scale_max 1.0 \
+    --warmup_epochs 40 \
+    --blr 1.5e-4 --weight_decay 0.05 \
+    --decoder_aux_loss_layers 1\
+    --target_size_scheduler constant\
+    --decoder_depth 8 \
+    --no_autoresume \
+    --use_mask_token \
+    --skip_knn_eval \
+    --fixed_output_size_min 224\
+    --fixed_output_size_max 336\
+    --absolute_scale 
+
+
+    --loss_masking\
+    --independent_fcn_head \
+    --decoder_mode encoder\
+
+
+```
